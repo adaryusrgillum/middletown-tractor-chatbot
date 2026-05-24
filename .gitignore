@@ -31,6 +31,9 @@ site_bundle/manifest.json
 # --- APK output (distributed via GitHub Releases, not git) ---
 *.apk
 
+# --- Dev-only screenshot harness output ---
+screenshots/
+
 # --- Env / secrets ---
 .env
 

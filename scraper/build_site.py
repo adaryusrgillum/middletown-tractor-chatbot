@@ -132,11 +132,11 @@ def head(title: str, depth: int) -> str:
 def topbar(depth: int) -> str:
     prefix = "../" if depth else ""
     return f"""<header class="topbar">
-  <a class="brand" href="{prefix}index.html">
-    <span class="brand-mark">MT</span>
+  <a class="brand" href="{prefix}index.html" aria-label="Middletown Tractor Sales home">
+    <span class="brand-mark" aria-hidden="true">MT</span>
     <span class="brand-text">
-      <strong>Middletown Tractor Sales</strong>
-      <small>John Deere &middot; STIHL &middot; Honda Power &middot; Ventrac</small>
+      <strong>Middletown Tractor</strong>
+      <small>John Deere &middot; STIHL &middot; Honda &middot; Ventrac</small>
     </span>
   </a>
   <nav class="topnav">
@@ -201,14 +201,19 @@ def product_card(p: dict, image_map: dict[str, str], depth: int = 0) -> str:
     thumb = page_thumb(p, image_map)
     img_prefix = "../" if depth else ""
     href_prefix = "" if depth else "pages/"
-    img_html = (
-        f'<div class="card-img"><img loading="lazy" src="{img_prefix}{H(thumb)}" alt=""></div>'
-        if thumb else
-        '<div class="card-img card-img-empty"></div>'
-    )
     name = product_name(p)
     brand = brand_of(p) or ""
-    return f"""<a class="card product-card" href="{href_prefix}{H(slug_for(p["url"]))}">
+    alt = (f"{brand} {name}".strip() or "Product photo")
+    img_html = (
+        f'<div class="card-img">'
+        f'<img loading="lazy" src="{img_prefix}{H(thumb)}" alt="{H(alt)}">'
+        f'</div>'
+        if thumb else
+        f'<div class="card-img card-img-empty" aria-label="{H(alt)}">'
+        f'<span class="card-img-fallback">{H(brand or "Middletown Tractor")}</span>'
+        f'</div>'
+    )
+    return f"""<a class="card product-card" href="{href_prefix}{H(slug_for(p["url"]))}" aria-label="{H(alt)}">
   {img_html}
   <div class="card-body">
     <div class="card-brand">{H(brand)}</div>
@@ -218,12 +223,15 @@ def product_card(p: dict, image_map: dict[str, str], depth: int = 0) -> str:
 
 
 def brand_card(brand: str, count: int, thumb: str | None) -> str:
+    alt = f"{brand} inventory"
     img_html = (
-        f'<div class="card-img"><img loading="lazy" src="{H(thumb)}" alt=""></div>'
+        f'<div class="card-img"><img loading="lazy" src="{H(thumb)}" alt="{H(alt)}"></div>'
         if thumb else
-        '<div class="card-img card-img-empty"></div>'
+        f'<div class="card-img card-img-empty" aria-label="{H(alt)}">'
+        f'<span class="card-img-fallback">{H(brand)}</span>'
+        f'</div>'
     )
-    return f"""<a class="card brand-card" href="pages/{H(brand_slug(brand))}">
+    return f"""<a class="card brand-card" href="pages/{H(brand_slug(brand))}" aria-label="{H(alt)}">
   {img_html}
   <div class="card-body">
     <div class="card-title">{H(brand)}</div>
@@ -240,18 +248,21 @@ def render_product_page(p: dict, image_map: dict[str, str]) -> str:
     hero = images[0] if images else None
     thumbs = images[1:] if len(images) > 1 else []
 
+    alt = f"{brand_of(p) or ''} {title}".strip() or "Product photo"
     hero_html = (
-        f'<div class="product-hero"><img src="../{H(hero)}" alt=""></div>'
+        f'<div class="product-hero"><img src="../{H(hero)}" alt="{H(alt)}"></div>'
         if hero else
-        '<div class="product-hero product-hero-empty"></div>'
+        f'<div class="product-hero product-hero-empty" aria-label="{H(alt)}">'
+        f'<span class="hero-fallback">{H(alt)}</span></div>'
     )
 
     thumb_html = ""
     if thumbs:
         items = "".join(
-            f'<button class="thumb" onclick="document.querySelector(\'.product-hero img\').src=\'../{H(t)}\'">'
-            f'<img src="../{H(t)}" alt=""></button>'
-            for t in thumbs
+            f'<button class="thumb" type="button" aria-label="View photo {i+2} of {H(title)}" '
+            f'onclick="document.querySelector(\'.product-hero img\').src=\'../{H(t)}\'">'
+            f'<img src="../{H(t)}" alt="{H(title)} photo {i+2}"></button>'
+            for i, t in enumerate(thumbs)
         )
         thumb_html = f'<div class="thumb-row">{items}</div>'
 
@@ -294,7 +305,10 @@ def render_info_page(p: dict, image_map: dict[str, str]) -> str:
     images = [image_map[u] for u in p.get("images", []) if u in image_map]
     img_html = ""
     if images:
-        items = "".join(f'<img class="info-img" loading="lazy" src="../{H(i)}" alt="">' for i in images[:8])
+        items = "".join(
+            f'<img class="info-img" loading="lazy" src="../{H(i)}" alt="{H(title)} photo {idx+1}">'
+            for idx, i in enumerate(images[:8])
+        )
         img_html = f'<div class="info-images">{items}</div>'
 
     return f"""{head(title + " | Middletown Tractor", depth=1)}
@@ -446,19 +460,26 @@ SITE_CSS = """:root {
   --shadow: 0 2px 8px rgba(0,0,0,0.06);
   --shadow-hover: 0 6px 18px rgba(0,0,0,0.12);
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+* { box-sizing: border-box; min-width: 0; }
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
   background: var(--bg);
   line-height: 1.5;
   font-size: 15px;
+  -webkit-text-size-adjust: 100%;
 }
 a { color: var(--primary-dark); text-decoration: none; }
 a:hover { text-decoration: underline; }
-img { max-width: 100%; display: block; }
-h1, h2, h3, h4 { color: var(--text); }
+img { max-width: 100%; height: auto; display: block; }
+h1, h2, h3, h4 { color: var(--text); overflow-wrap: anywhere; }
+p, li, .card-title, .card-meta, .card-brand { overflow-wrap: anywhere; word-wrap: break-word; }
 
 /* ---------- Topbar ---------- */
 .topbar {
@@ -468,10 +489,13 @@ h1, h2, h3, h4 { color: var(--text); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px;
+  gap: 8px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
 }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--text); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); min-width: 0; flex: 1 1 auto; }
 .brand-mark {
+  flex: 0 0 auto;
   width: 36px; height: 36px;
   background: var(--primary); color: #fff;
   border-radius: 50%;
@@ -479,43 +503,60 @@ h1, h2, h3, h4 { color: var(--text); }
   font-weight: 700; font-size: 14px;
   letter-spacing: 0.05em;
 }
-.brand-text strong { display: block; line-height: 1.1; font-size: 15px; }
-.brand-text small { display: block; color: var(--muted); font-size: 11px; }
-.topnav a { margin-left: 16px; font-size: 14px; font-weight: 500; color: var(--text); }
+.brand-text { min-width: 0; }
+.brand-text strong { display: block; line-height: 1.15; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-text small { display: block; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topnav { display: flex; gap: 12px; flex-shrink: 0; }
+.topnav a {
+  font-size: 14px; font-weight: 500; color: var(--text);
+  padding: 6px 10px; border-radius: 6px;
+}
+.topnav a:hover { background: var(--bg); text-decoration: none; }
 
 /* ---------- Hero ---------- */
 .hero {
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   color: #fff;
-  padding: 40px 20px 32px;
+  padding: clamp(24px, 6vw, 48px) clamp(16px, 4vw, 24px) clamp(20px, 5vw, 36px);
 }
 .hero-inner { max-width: 1000px; margin: 0 auto; }
-.hero h1 { font-size: 30px; margin: 0 0 8px; color: #fff; line-height: 1.15; }
-.hero .lede { font-size: 15px; opacity: 0.95; margin: 0 0 16px; }
+.hero h1 {
+  font-size: clamp(22px, 5.5vw, 34px);
+  margin: 0 0 8px;
+  color: #fff;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.hero .lede { font-size: clamp(14px, 3.4vw, 16px); opacity: 0.95; margin: 0 0 16px; }
 .locations-strip {
-  display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px; margin: 16px 0 20px;
 }
 .loc-pill {
   background: rgba(255,255,255,0.13);
-  border: 1px solid rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
+  min-width: 0;
 }
-.loc-pill strong { display: block; }
-.loc-pill small { opacity: 0.85; }
+.loc-pill strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loc-pill small { opacity: 0.85; display: block; }
 .hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
 
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-block;
-  padding: 9px 16px;
+  padding: 10px 16px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
   text-decoration: none;
   border: 1px solid transparent;
   cursor: pointer;
+  min-height: 40px;
+  line-height: 1.2;
 }
 .btn:hover { text-decoration: none; }
 .btn-primary { background: var(--accent); color: #1a1f1c; }
@@ -524,21 +565,24 @@ h1, h2, h3, h4 { color: var(--text); }
 .btn-secondary:hover { background: var(--bg); }
 .btn-ghost { background: rgba(255,255,255,0.15); color: #fff; border-color: rgba(255,255,255,0.4); }
 .btn-ghost:hover { background: rgba(255,255,255,0.25); }
-.btn-lg { padding: 11px 22px; font-size: 15px; }
+.btn-lg { padding: 12px 22px; font-size: 15px; }
 
 /* ---------- Main / sections ---------- */
-.home { max-width: 1100px; margin: 0 auto; padding: 8px 16px 40px; }
-section { margin: 32px 0; }
-.section-head { margin-bottom: 14px; }
-.section-head h2 { margin: 0 0 4px; font-size: 22px; color: var(--primary-dark); }
+.home { max-width: 1100px; margin: 0 auto; padding: 8px clamp(12px, 3vw, 20px) 40px; }
+section { margin: clamp(20px, 4vw, 32px) 0; }
+.section-head { margin-bottom: 12px; }
+.section-head h2 { margin: 0 0 4px; font-size: clamp(18px, 4.2vw, 24px); color: var(--primary-dark); }
 .section-head .muted { color: var(--muted); margin: 0; font-size: 13.5px; }
 .muted { color: var(--muted); }
 
 /* ---------- Card grid ---------- */
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: clamp(10px, 2vw, 16px);
+}
+@media (min-width: 600px) {
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 }
 .card {
   background: var(--bg-card);
@@ -550,23 +594,38 @@ section { margin: 32px 0; }
   display: flex; flex-direction: column;
   box-shadow: var(--shadow);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
+  min-width: 0;
 }
-.card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); text-decoration: none; }
+.card:hover, .card:focus-visible {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+  text-decoration: none;
+  outline: none;
+}
 .card-img {
   width: 100%; aspect-ratio: 4/3;
   background: #eee;
   overflow: hidden;
   display: flex; align-items: center; justify-content: center;
+  position: relative;
 }
 .card-img img { width: 100%; height: 100%; object-fit: cover; }
-.card-img-empty { background: linear-gradient(135deg, #e8eee8, #d9e3da); }
-.card-body { padding: 10px 12px 12px; }
+.card-img-empty {
+  background: linear-gradient(135deg, #e8eee8, #d9e3da);
+  color: var(--primary-dark);
+}
+.card-img-fallback {
+  font-size: 13px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; text-align: center;
+  padding: 0 10px;
+}
+.card-body { padding: 10px 12px 12px; min-width: 0; }
 .card-brand { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
 .card-title { font-weight: 600; font-size: 14px; margin-top: 2px; line-height: 1.3; color: var(--text); }
 .card-meta { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
 
 /* ---------- Info links ---------- */
-.info-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.info-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
 .info-link {
   display: block;
   padding: 12px 14px;
@@ -577,11 +636,15 @@ section { margin: 32px 0; }
   font-size: 14px;
   color: var(--primary-dark);
   text-decoration: none;
+  overflow-wrap: anywhere;
 }
 .info-link:hover { background: #fff; border-color: var(--primary); text-decoration: none; }
 
 /* ---------- Product detail ---------- */
-.product-page, .listing-page, .info-page { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.product-page, .listing-page, .info-page {
+  max-width: 1100px; margin: 0 auto;
+  padding: 16px clamp(12px, 3vw, 20px);
+}
 .back { display: inline-block; color: var(--muted); margin-bottom: 12px; font-size: 13.5px; }
 .product-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
 @media (min-width: 768px) { .product-grid { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); } }
@@ -590,37 +653,83 @@ section { margin: 32px 0; }
   background: #eee;
   border-radius: 12px;
   overflow: hidden;
+  position: relative;
 }
 .product-hero img { width: 100%; height: 100%; object-fit: cover; }
-.product-hero-empty { background: linear-gradient(135deg, #e8eee8, #d9e3da); }
+.product-hero-empty {
+  background: linear-gradient(135deg, #e8eee8, #d9e3da);
+  display: flex; align-items: center; justify-content: center;
+}
+.hero-fallback {
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: clamp(14px, 3vw, 18px);
+  text-align: center; padding: 0 16px;
+}
 .thumb-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-.thumb { width: 70px; height: 56px; border: 1px solid var(--border); border-radius: 6px; background: #fff; padding: 0; cursor: pointer; overflow: hidden; }
+.thumb {
+  width: 72px; height: 56px;
+  border: 1px solid var(--border); border-radius: 6px;
+  background: #fff; padding: 0; cursor: pointer; overflow: hidden;
+  flex: 0 0 auto;
+}
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb:hover, .thumb:focus-visible { border-color: var(--primary); outline: none; }
+.product-info { min-width: 0; }
 .product-info .product-brand { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-.product-info h1 { margin: 4px 0 14px; font-size: 24px; color: var(--primary-dark); }
+.product-info h1 { margin: 4px 0 14px; font-size: clamp(20px, 4.4vw, 26px); color: var(--primary-dark); }
 .product-cta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-.product-body p { margin: 0 0 10px; font-size: 14.5px; }
-.source-link { margin-top: 18px; font-size: 13px; color: var(--muted); }
+.product-body { min-width: 0; }
+.product-body p {
+  margin: 0 0 10px;
+  font-size: 14.5px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.source-link { margin-top: 18px; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
 
 /* ---------- Info page ---------- */
-.info-page article { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 22px; }
-.info-page h1 { margin-top: 0; color: var(--primary-dark); }
-.info-images { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 8px; margin: 14px 0; }
-.info-img { width: 100%; height: 140px; object-fit: cover; border-radius: 8px; }
+.info-page article {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: clamp(14px, 3vw, 22px);
+  min-width: 0;
+}
+.info-page h1 { margin-top: 0; color: var(--primary-dark); font-size: clamp(20px, 4.4vw, 28px); }
+.info-body { overflow-wrap: anywhere; word-break: break-word; }
+.info-body p { margin: 0 0 10px; }
+.info-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px,1fr));
+  gap: 8px; margin: 14px 0;
+}
+.info-img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; }
+@media (min-width: 600px) {
+  .info-images { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); }
+  .info-img { height: 140px; }
+}
 
 /* ---------- Listing page ---------- */
-.listing-page h1 { color: var(--primary-dark); margin: 6px 0 4px; }
+.listing-page h1 { color: var(--primary-dark); margin: 6px 0 4px; font-size: clamp(22px, 4.6vw, 30px); }
 .listing-meta { color: var(--muted); margin: 0 0 16px; font-size: 13.5px; }
+.brand-section { margin: 28px 0; }
+.brand-section h2 { color: var(--primary-dark); margin: 0 0 12px; font-size: clamp(18px, 4vw, 22px); }
 
 /* ---------- Footer ---------- */
-.site-footer { background: #1a1f1c; color: #c9d1cb; padding: 30px 20px 14px; margin-top: 40px; }
-.footer-cols { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+.site-footer { background: #1a1f1c; color: #c9d1cb; padding: 30px clamp(16px, 4vw, 24px) 14px; margin-top: 40px; }
+.footer-cols { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
 .footer-cols h4 { color: #fff; margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; }
 .footer-cols ul { list-style: none; padding: 0; margin: 0; }
-.footer-cols ul li { margin: 6px 0; font-size: 13.5px; line-height: 1.45; }
+.footer-cols ul li { margin: 6px 0; font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; }
 .footer-cols a { color: #d9e3da; }
 .footer-cols .loc-list li { margin-bottom: 12px; }
 .footer-bottom { max-width: 1100px; margin: 22px auto 0; padding-top: 14px; border-top: 1px solid #2a312c; font-size: 12px; color: #8a948c; }
+
+/* ---------- Very small screens ---------- */
+@media (max-width: 380px) {
+  .brand-text small { display: none; }
+  .topnav a { padding: 6px 8px; font-size: 13px; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+}
 """
 
 
