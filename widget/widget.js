@@ -5,27 +5,32 @@
     {
       apiUrl: "/api/chat",
       suggestionsUrl: "/api/suggestions",
+      urlMapUrl: "/assets/url_map.json",
       greeting: "Hi! Ask me anything about Middletown Tractor — products, parts, service, financing, hours, or locations.",
     },
     window.MT_CHAT_CONFIG || {}
   );
 
-  /** Loaded from /api/suggestions: [{question, answer, sources}]. */
+  /** Loaded from /api/suggestions: [{question, answer, sources, cards, images}]. */
   let cannedSuggestions = [];
+  /** Remote URL -> in-app relative path (e.g. "pages/brand-john-deere.html"). */
+  let urlMap = {};
+  /** Path depth relative to bundle root, so we can prefix relative links correctly. */
+  const pathDepth = computePathDepth();
 
   const root = document.getElementById("mt-chat-root") || document.body;
 
   // ---------- Build DOM ----------
 
-  const launcher = el("button", { class: "mt-launcher", title: "Chat with us" }, "💬");
-  const panel = el("div", { class: "mt-panel" });
+  const launcher = el("button", { class: "mt-launcher", title: "Chat with us", "aria-label": "Open chat" }, "💬");
+  const panel = el("div", { class: "mt-panel", role: "dialog", "aria-label": "Middletown Tractor chat" });
 
   const header = el("div", { class: "mt-header" }, [
-    el("div", {}, [
+    el("div", { class: "mt-header-text" }, [
       el("h3", {}, "Middletown Tractor"),
       el("div", { class: "mt-subtitle" }, "Ask us anything"),
     ]),
-    el("button", { class: "mt-close", title: "Close" }, "×"),
+    el("button", { class: "mt-close", title: "Close", "aria-label": "Close chat" }, "×"),
   ]);
   const messagesEl = el("div", { class: "mt-messages" });
   const suggestionsToggle = el(
@@ -70,6 +75,32 @@
     applySuggestionsCollapsed();
   });
 
+  // ---------- URL handling ----------
+
+  function computePathDepth() {
+    const path = location.pathname.replace(/\/+$/, "");
+    const segs = path.split("/").filter(Boolean);
+    // index.html is at depth 0; pages/*.html is at depth 1.
+    return path.endsWith(".html") ? Math.max(0, segs.length - 1) : segs.length;
+  }
+
+  function withPrefix(relPath) {
+    if (!relPath) return relPath;
+    if (/^(?:[a-z]+:)?\/\//i.test(relPath) || relPath.startsWith("#") || relPath.startsWith("mailto:") || relPath.startsWith("tel:")) {
+      return relPath;
+    }
+    return "../".repeat(pathDepth) + relPath;
+  }
+
+  /** Resolve a remote URL to an in-app path (or null if no local match). */
+  function appPathFor(url) {
+    if (!url) return null;
+    if (urlMap[url]) return urlMap[url];
+    // Try stripping trailing slash / fragment / query.
+    const clean = url.split("#")[0].split("?")[0].replace(/\/$/, "");
+    return urlMap[clean] || null;
+  }
+
   function renderSuggestions() {
     suggestionsEl.textContent = "";
     if (!cannedSuggestions.length) {
@@ -100,7 +131,7 @@
     return triggers;
   }
 
-  function makeLinkEl(label, item) {
+  function makeLocLinkEl(label, item) {
     const a = document.createElement("a");
     a.className = "mt-loc-link";
     a.href = "#";
@@ -137,13 +168,13 @@
       }
       const matched = m[0];
       if (matched === "[Location Details]") {
-        if (lastItem) container.appendChild(makeLinkEl(matched, lastItem));
+        if (lastItem) container.appendChild(makeLocLinkEl(matched, lastItem));
         else container.appendChild(document.createTextNode(matched));
       } else {
         const t = triggers.find((x) => x.kw === matched);
         if (t) {
           lastItem = t.item;
-          container.appendChild(makeLinkEl(matched, t.item));
+          container.appendChild(makeLocLinkEl(matched, t.item));
         } else {
           container.appendChild(document.createTextNode(matched));
         }
@@ -165,13 +196,26 @@
     }
   }
 
+  async function loadUrlMap() {
+    try {
+      const res = await fetch(CONFIG.urlMapUrl);
+      if (!res.ok) return;
+      urlMap = await res.json();
+    } catch {
+      urlMap = {};
+    }
+  }
+
   function sendCanned(item) {
     if (busy) return;
     appendUser(item.question);
     history.push({ role: "user", content: item.question });
     // Render the canned answer immediately - no LLM call.
     const msgEl = appendAssistantText("");
-    renderAssistant(msgEl, item.answer, item.sources || []);
+    renderAssistant(msgEl, item.answer, item.sources || [], {
+      cards: item.cards || [],
+      images: item.images || [],
+    });
     history.push({ role: "assistant", content: item.answer });
     textarea.focus();
   }
@@ -184,18 +228,33 @@
 
   // ---------- Event wiring ----------
 
+  function openPanel() {
+    panel.classList.add("open");
+    launcher.classList.add("hidden");
+    document.body.style.overflow = "hidden";
+    textarea.focus();
+  }
+
+  function closePanel() {
+    panel.classList.remove("open");
+    launcher.classList.remove("hidden");
+    document.body.style.overflow = "";
+  }
+
   launcher.addEventListener("click", async () => {
-    panel.classList.toggle("open");
-    if (panel.classList.contains("open") && messagesEl.children.length === 0) {
+    openPanel();
+    if (messagesEl.children.length === 0) {
       appendAssistantText(CONFIG.greeting);
       if (!cannedSuggestions.length) await loadSuggestions();
       renderSuggestions();
     }
-    textarea.focus();
   });
 
-  header.querySelector(".mt-close").addEventListener("click", () => {
-    panel.classList.remove("open");
+  header.querySelector(".mt-close").addEventListener("click", closePanel);
+
+  // Close on hardware back / browser back when chat is open
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panel.classList.contains("open")) closePanel();
   });
 
   textarea.addEventListener("keydown", (e) => {
@@ -206,6 +265,9 @@
   });
 
   sendBtn.addEventListener("click", send);
+
+  // Prefetch url map (cheap, ~few KB) so cards/sources render with in-app links
+  loadUrlMap();
 
   // ---------- Core ----------
 
@@ -225,7 +287,8 @@
       renderAssistant(
         msg,
         "Free-form questions need a connection to our AI service. Please use a suggested question above, or call your nearest location for help.",
-        []
+        [],
+        {}
       );
       setBusy(false);
       textarea.focus();
@@ -235,6 +298,7 @@
     const assistantMsg = appendAssistantPlaceholder();
     let buffer = "";
     let sources = [];
+    let extras = {};
 
     try {
       const res = await fetch(CONFIG.apiUrl, {
@@ -255,7 +319,6 @@
         if (done) break;
         pending += decoder.decode(value, { stream: true });
 
-        // SSE frames are separated by \n\n
         let idx;
         while ((idx = pending.indexOf("\n\n")) !== -1) {
           const frame = pending.slice(0, idx);
@@ -271,20 +334,26 @@
           }
           if (evt.type === "delta") {
             buffer += evt.text;
-            renderAssistant(assistantMsg, buffer, sources);
+            renderAssistant(assistantMsg, buffer, sources, extras);
           } else if (evt.type === "sources") {
             sources = evt.sources || [];
-            renderAssistant(assistantMsg, buffer, sources);
+            renderAssistant(assistantMsg, buffer, sources, extras);
+          } else if (evt.type === "cards") {
+            extras.cards = evt.cards || [];
+            renderAssistant(assistantMsg, buffer, sources, extras);
+          } else if (evt.type === "images") {
+            extras.images = evt.images || [];
+            renderAssistant(assistantMsg, buffer, sources, extras);
           } else if (evt.type === "error") {
             buffer = `⚠️ ${evt.error}`;
-            renderAssistant(assistantMsg, buffer, []);
+            renderAssistant(assistantMsg, buffer, [], {});
           }
         }
       }
 
       if (buffer) history.push({ role: "assistant", content: buffer });
     } catch (e) {
-      renderAssistant(assistantMsg, `⚠️ Couldn't reach the chatbot (${e.message}). Please try again.`, []);
+      renderAssistant(assistantMsg, `⚠️ Couldn't reach the chatbot (${e.message}). Please try again.`, [], {});
     } finally {
       setBusy(false);
       textarea.focus();
@@ -322,22 +391,97 @@
     return m;
   }
 
-  function renderAssistant(msgEl, text, sources) {
+  function renderCards(cards) {
+    const grid = el("div", { class: "mt-cards" });
+    for (const c of cards) {
+      const href = c.app_path ? withPrefix(c.app_path) : (c.url || "#");
+      const card = document.createElement("a");
+      card.className = "mt-card";
+      card.href = href;
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "mt-card-img";
+      if (c.image) {
+        const img = document.createElement("img");
+        img.loading = "lazy";
+        img.src = withPrefix(c.image);
+        img.alt = c.title || "";
+        imgWrap.appendChild(img);
+      } else {
+        const fb = document.createElement("span");
+        fb.className = "mt-card-img-fallback";
+        fb.textContent = c.title || "Middletown Tractor";
+        imgWrap.appendChild(fb);
+      }
+      const body = document.createElement("div");
+      body.className = "mt-card-body";
+      const t = document.createElement("div");
+      t.className = "mt-card-title";
+      t.textContent = c.title || "";
+      body.appendChild(t);
+      if (c.sub) {
+        const s = document.createElement("div");
+        s.className = "mt-card-sub";
+        s.textContent = c.sub;
+        body.appendChild(s);
+      }
+      card.appendChild(imgWrap);
+      card.appendChild(body);
+      // Close panel when navigating in-app so the destination page is visible.
+      if (c.app_path) {
+        card.addEventListener("click", () => closePanel());
+      }
+      grid.appendChild(card);
+    }
+    return grid;
+  }
+
+  function renderGallery(images) {
+    const grid = el("div", { class: "mt-gallery" });
+    for (const im of images) {
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.src = withPrefix(typeof im === "string" ? im : im.src);
+      img.alt = (typeof im === "object" && im.alt) || "";
+      grid.appendChild(img);
+    }
+    return grid;
+  }
+
+  function renderAssistant(msgEl, text, sources, extras) {
     msgEl.textContent = ""; // clear typing dots / prior content
     appendLinkedText(msgEl, text || "");
+
+    if (extras && Array.isArray(extras.cards) && extras.cards.length) {
+      msgEl.appendChild(renderCards(extras.cards));
+    }
+    if (extras && Array.isArray(extras.images) && extras.images.length) {
+      msgEl.appendChild(renderGallery(extras.images));
+    }
+
     if (sources && sources.length) {
       const seen = new Set();
       const unique = sources.filter((s) => {
-        if (seen.has(s.url)) return false;
-        seen.add(s.url);
+        const key = s.app_path || s.url;
+        if (seen.has(key)) return false;
+        seen.add(key);
         return true;
       });
-      const srcEl = el("div", { class: "mt-sources" }, [
-        document.createTextNode("Sources: "),
-        ...unique.slice(0, 3).map((s) =>
-          el("a", { href: s.url, target: "_blank", rel: "noopener" }, s.title || s.url)
-        ),
-      ]);
+      const srcEl = el("div", { class: "mt-sources" });
+      srcEl.appendChild(document.createTextNode("Sources: "));
+      for (const s of unique.slice(0, 4)) {
+        const localPath = s.app_path || appPathFor(s.url);
+        const a = document.createElement("a");
+        if (localPath) {
+          a.href = withPrefix(localPath);
+          a.addEventListener("click", () => closePanel());
+        } else {
+          a.href = s.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+        }
+        a.textContent = s.title || s.url;
+        srcEl.appendChild(a);
+      }
       msgEl.appendChild(srcEl);
     }
     scrollDown();

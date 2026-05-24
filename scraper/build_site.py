@@ -203,9 +203,14 @@ def footer(depth: int) -> str:
 
 
 def chat_root(depth: int) -> str:
-    prefix = "/" if not depth else "/"  # absolute path works in Capacitor WebView
-    return f"""<div id="mt-chat-root"></div>
-<script>window.MT_CHAT_CONFIG = {{ apiUrl: window.MT_BACKEND_URL || '', suggestionsUrl: '/assets/canned.json' }};</script>
+    # Absolute paths resolve from the Capacitor bundle root in both the
+    # index page and pages/*.html, so we don't need to adjust by depth.
+    return """<div id="mt-chat-root"></div>
+<script>window.MT_CHAT_CONFIG = {
+  apiUrl: window.MT_BACKEND_URL || '',
+  suggestionsUrl: '/assets/canned.json',
+  urlMapUrl: '/assets/url_map.json'
+};</script>
 <script src="/assets/widget.js" defer></script>"""
 
 
@@ -857,7 +862,81 @@ def main() -> int:
     shutil.copy(widget_src / "widget.js", ASSETS_DIR / "widget.js")
     (ASSETS_DIR / "site.css").write_text(SITE_CSS, encoding="utf-8")
 
+    # ---- URL map: remote URL -> in-app relative path ----
+    # Every scraped page we render locally is reachable; the widget uses this
+    # to translate source links so they navigate to the bundled copy.
+    url_map: dict[str, str] = {}
+    for p in pages:
+        if is_generic_showroom(p):
+            continue
+        kind = page_kind(p)
+        if kind in ("product", "category", "info", "location", "reviews"):
+            url_map[p["url"]] = f"pages/{slug_for(p['url'])}"
+    # Hand-curated mappings for canned-answer URLs that aren't direct page hits.
+    extra_map = {
+        "https://www.middletowntractor.com/inventory/v1/Current": "pages/all-inventory.html",
+        "https://www.middletowntractor.com/inventory/v1/Current/John-Deere": "pages/brand-john-deere.html",
+        "https://www.middletowntractor.com/inventory/v1/Current/John-Deere/Tractor": "pages/brand-john-deere.html",
+    }
+    url_map.update(extra_map)
+    (ASSETS_DIR / "url_map.json").write_text(
+        json.dumps(url_map, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+    # ---- Canned answers enriched with app_path + brand navigation cards ----
     canned = json.loads((ROOT / "backend" / "canned.json").read_text(encoding="utf-8"))
+
+    # Pick one thumb per brand for nav cards
+    brand_thumb: dict[str, str | None] = {}
+    for brand, prods in brand_groups.items():
+        thumb = None
+        for prod in prods:
+            t = page_thumb(prod, image_map)
+            if t:
+                thumb = t
+                break
+        brand_thumb[brand] = thumb
+
+    def card(title: str, sub: str, app_path: str, image: str | None) -> dict:
+        c = {"title": title, "sub": sub, "app_path": app_path}
+        if image:
+            c["image"] = image
+        return c
+
+    nav_cards_by_question = {
+        "What brands do you carry besides John Deere?": [
+            card(b, f"{c} item{'s' if c != 1 else ''}", f"pages/{brand_slug(b)}", brand_thumb.get(b))
+            for b, c in sorted(
+                ((b, len(p)) for b, p in brand_groups.items() if b != "John Deere"),
+                key=lambda kv: -kv[1],
+            )[:6]
+        ],
+        "What John Deere tractors do you sell?": [
+            card("John Deere",
+                 f"{len(brand_groups.get('John Deere', []))} units in stock",
+                 "pages/brand-john-deere.html",
+                 brand_thumb.get("John Deere")),
+            card("All inventory", "Browse every brand", "pages/all-inventory.html", None),
+        ],
+        "Do you sell used equipment?": [
+            card("All inventory", "Browse current stock", "pages/all-inventory.html", None),
+        ],
+        "How do I get a quote?": [
+            card("All inventory", "Pick a unit first", "pages/all-inventory.html", None),
+        ],
+    }
+
+    for entry in canned:
+        # Translate every source to an in-app path where possible
+        for s in entry.get("sources", []):
+            ap = url_map.get(s.get("url", ""))
+            if ap:
+                s["app_path"] = ap
+        # Attach nav cards if we curated some
+        cards = nav_cards_by_question.get(entry["question"])
+        if cards:
+            entry["cards"] = cards
+
     (ASSETS_DIR / "canned.json").write_text(
         json.dumps(canned, indent=2, ensure_ascii=False), encoding="utf-8"
     )
