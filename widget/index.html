@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Middletown Tractor — Chatbot Demo</title>
+    <link rel="stylesheet" href="/widget.css" />
+  </head>
+  <body>
+    <main class="demo-page">
+      <h1>Middletown Tractor Chatbot</h1>
+      <p>
+        This page is a demo host for the embeddable chat widget. The widget
+        (the green bubble in the bottom-right) can be dropped into any page
+        by including <code>widget.js</code> and <code>widget.css</code>.
+      </p>
+      <p>
+        Try asking: <em>"What brands of tractors do you sell?"</em>,
+        <em>"Where are you located?"</em>, or
+        <em>"Do you offer financing?"</em>
+      </p>
+    </main>
+
+    <!-- Chat widget -->
+    <div id="mt-chat-root"></div>
+    <script>
+      // Point the widget at the backend. Same-origin by default; override for cross-origin embed.
+      window.MT_CHAT_CONFIG = { apiUrl: "/api/chat" };
+    </script>
+    <script src="/widget.js" defer></script>
+  </body>
+</html>

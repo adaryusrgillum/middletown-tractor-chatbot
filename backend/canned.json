@@ -1,0 +1,116 @@
+[
+  {
+    "question": "What locations do you have?",
+    "answer": "We have four locations in West Virginia and Pennsylvania:\n\n1. Fairmont, WV - [Location Details]\n2. Buckhannon, WV - [Location Details]\n3. Uniontown, PA - [Location Details]\n4. Washington, PA - [Location Details]\n\nClick any location above for the address, phone, and brands carried. You can visit any of these locations for your needs!",
+    "sources": [
+      { "title": "Locations | Middletown Tractor Sales", "url": "https://www.middletowntractor.com/map-and-directions-tractors-mowers-landscapers-dealership--locations" }
+    ]
+  },
+  {
+    "question": "What are your hours?",
+    "answer": "Hours vary by location and change seasonally (fall/winter vs. spring/summer). For current hours, please call the location nearest you:\n\n• Fairmont, WV: (304) 366-4690\n• Buckhannon, WV: (304) 473-4400\n• Uniontown, PA: (724) 439-1234\n• Washington, PA: (724) 229-0191\n\nYou can also reach us by phone, email, or online request outside of store hours — we'll get back to you.",
+    "sources": [
+      { "title": "Fairmont Hours", "url": "https://www.middletowntractor.com/map-directions--hours-fairmont" },
+      { "title": "Buckhannon Hours", "url": "https://www.middletowntractor.com/map-directions--hours-buckhannon" },
+      { "title": "Uniontown Hours", "url": "https://www.middletowntractor.com/map-directions--hours-uniontown" },
+      { "title": "Washington Hours", "url": "https://www.middletowntractor.com/map-directions--hours-washington" }
+    ]
+  },
+  {
+    "question": "What brands do you carry besides John Deere?",
+    "answer": "Beyond John Deere, we carry:\n\n• STIHL — chainsaws, trimmers, blowers, and power equipment\n• Honda Power Equipment — generators (EB, EM, EG, EU series) and more\n• Ventrac — compact tractors and attachments (Fairmont, Buckhannon, Washington)\n• Frontier — landscape, loader, and snow-removal attachments\n• Alamo Industrial — boom mowers and cutting heads\n• Kuhn — at our Washington, PA location\n\nBrowse current inventory by brand on our website.",
+    "sources": [
+      { "title": "All Inventory", "url": "https://www.middletowntractor.com/inventory/v1/Current" }
+    ]
+  },
+  {
+    "question": "Do you offer financing?",
+    "answer": "Yes — we work with John Deere Financial to offer competitive financing and lease options on tractors, mowers, and equipment. Current promotions and tractor packages are posted on our website, and any of our four locations can walk you through rates and pre-approval.\n\nFor current offers, ask about our Tractor Packages or call your nearest store.",
+    "sources": [
+      { "title": "Current Tractor Packages", "url": "https://www.middletowntractor.com/check-out-our--current-tractor-packages" },
+      { "title": "Get a Quote", "url": "https://www.middletowntractor.com/--xget_quote" }
+    ]
+  },
+  {
+    "question": "What John Deere tractors do you sell?",
+    "answer": "We carry the full John Deere tractor lineup:\n\n• Compact Tractors — 1-Series, 2-Series, 3-Series, 4-Series\n• Utility Tractors — 5-Family and 6-Family\n\nWe also stock John Deere loaders, attachments, mowers (residential and commercial), utility vehicles (Gator), skid steers, compact track loaders, excavators, and hay & forage equipment. Browse current inventory online or visit any of our four locations.",
+    "sources": [
+      { "title": "John Deere Tractor Models", "url": "https://www.middletowntractor.com/inventory/v1/Current/John-Deere/Tractor" },
+      { "title": "All John Deere Inventory", "url": "https://www.middletowntractor.com/inventory/v1/Current/John-Deere" }
+    ]
+  },
+  {
+    "question": "Do you sell used equipment?",
+    "answer": "Yes — we carry pre-owned tractors, mowers, and equipment in addition to new inventory. Used stock changes regularly, so the best way to see what's available is to browse our Pre-Owned Inventory page or call any location to ask about a specific model.\n\nWe also take trade-ins toward new equipment purchases.",
+    "sources": [
+      { "title": "Pre-Owned Inventory", "url": "https://www.middletowntractor.com/used-tractors-mowers-landscapers-for-sale--xPreOwnedInventory" }
+    ]
+  },
+  {
+    "question": "How do I schedule service?",
+    "answer": "Three ways to schedule service:\n\n1. Call your nearest location directly\n2. Submit a Service Status Request through our website\n3. Request our mobile repair service — our trucks come to your field or jobsite\n\nWe've served farmers, homeowners, and landowners for over 70 years. Each location has a dedicated service manager and writer, manufacturer-specific diagnostic tools, and a 28-truck fleet for equipment pickup and delivery at a low, fixed rate.",
+    "sources": [
+      { "title": "Service & Repair", "url": "https://www.middletowntractor.com/service-repair-tractors-mowers-landscapers-dealership--service" },
+      { "title": "Service Status Request", "url": "https://www.middletowntractor.com/email-middletown-tractor--service-status-request" }
+    ]
+  },
+  {
+    "question": "Do you offer mobile / on-site repair?",
+    "answer": "Yes — broken down in the field? We send a mobile repair truck to you. Our service trucks are equipped to handle most on-site repairs so you don't have to haul equipment to the shop.\n\nWe also run a fleet of 28 trucks for equipment pickup and delivery at a low, fixed rate if a job needs to come back to our service department. Submit a Service Status Request or call your nearest location.",
+    "sources": [
+      { "title": "Service & Repair", "url": "https://www.middletowntractor.com/service-repair-tractors-mowers-landscapers-dealership--service" }
+    ]
+  },
+  {
+    "question": "Do you have parts in stock?",
+    "answer": "Yes — we keep over $1 million in parts inventory across our four locations, including John Deere maintenance parts, STIHL power equipment parts, and more. Three ways to get parts:\n\n• Order parts online through our website\n• Call ahead to your nearest location\n• Stop by any of our four stores\n\nIf something isn't in stock, we'll happily special-order it for you.",
+    "sources": [
+      { "title": "Online Parts Ordering", "url": "https://www.middletowntractor.com/online-parts-ordering-tractors-mowers-landscapers-dealership--online-parts-ordering" },
+      { "title": "Parts Department", "url": "https://www.middletowntractor.com/parts-tractors-mowers-landscapers-dealership--parts" }
+    ]
+  },
+  {
+    "question": "How do I get a quote?",
+    "answer": "Easiest ways to get a quote:\n\n• Fill out the Get a Quote form on our website with the model you're interested in\n• Call any of our four locations and ask for sales\n• Browse current Tractor Packages for pre-built deals\n\nA salesperson will follow up with pricing, available financing, and delivery options. Trade-ins are welcome.",
+    "sources": [
+      { "title": "Get a Quote", "url": "https://www.middletowntractor.com/--xget_quote" },
+      { "title": "Current Tractor Packages", "url": "https://www.middletowntractor.com/check-out-our--current-tractor-packages" }
+    ]
+  },
+  {
+    "question": "Fairmont, WV location details",
+    "hidden": true,
+    "keywords": ["Fairmont, WV", "Fairmont"],
+    "answer": "Middletown Tractor Sales — Fairmont, WV\n\nAddress: 2050 Boyers Drive, Fairmont, WV 26554\nPhone: (304) 366-4690\nLocated just off I-79 Exit 133, Kingmont\n\nBrands carried: John Deere, Ventrac, STIHL, Honda Power equipment\n\nServices: New & used equipment sales, parts (over $1M inventory across stores), on-site service shop, mobile repair, pickup & delivery via our 28-truck fleet.\n\nFor current store hours, please call (304) 366-4690.",
+    "sources": [
+      { "title": "Fairmont Hours & Location", "url": "https://www.middletowntractor.com/map-directions--hours-fairmont" }
+    ]
+  },
+  {
+    "question": "Buckhannon, WV location details",
+    "hidden": true,
+    "keywords": ["Buckhannon, WV", "Buckhannon"],
+    "answer": "Middletown Tractor Sales — Buckhannon, WV\n\nAddress: 136 Billingsley Dr, Buckhannon, WV 26201\nPhone: (304) 473-4400\nLocated off Route 33, behind Buckhannon Toyota — convenient to Weston, Clarksburg, Elkins, Flatwoods, and Glenville\n\nBrands carried: John Deere, Ventrac, STIHL, Honda Power equipment\n\nServices: New & used equipment sales, parts in stock, on-site service shop, mobile repair, pickup & delivery.\n\nFor current store hours, please call (304) 473-4400.",
+    "sources": [
+      { "title": "Buckhannon Hours & Location", "url": "https://www.middletowntractor.com/map-directions--hours-buckhannon" }
+    ]
+  },
+  {
+    "question": "Uniontown, PA location details",
+    "hidden": true,
+    "keywords": ["Uniontown, PA", "Uniontown"],
+    "answer": "Middletown Tractor Sales — Uniontown, PA\n\nAddress: 655 Pittsburgh Road, Uniontown, PA 15401\nPhone: (724) 439-1234\nConveniently located just off PA-51 / Pittsburgh Rd\n\nBrands carried: John Deere, STIHL, Honda Power equipment\n\nServices: New & used equipment sales, parts in stock, on-site service shop, mobile repair, pickup & delivery via our 28-truck fleet.\n\nFor current store hours, please call (724) 439-1234.",
+    "sources": [
+      { "title": "Uniontown Hours & Location", "url": "https://www.middletowntractor.com/map-directions--hours-uniontown" }
+    ]
+  },
+  {
+    "question": "Washington, PA location details",
+    "hidden": true,
+    "keywords": ["Washington, PA", "Washington"],
+    "answer": "Middletown Tractor Sales — Washington, PA\n\nAddress: 910 Henderson Avenue, Washington, PA 15301\nPhone: (724) 229-0191\nLocated across from Lowry's Western Shop — convenient to Waynesburg, Canonsburg, Pittsburgh PA, and Wheeling WV\n\nBrands carried: John Deere, Ventrac, STIHL, Honda Power equipment, Kuhn\n\nServices: New & used equipment sales, parts in stock, on-site service shop, mobile repair, pickup & delivery.\n\nFor current store hours, please call (724) 229-0191.",
+    "sources": [
+      { "title": "Washington Hours & Location", "url": "https://www.middletowntractor.com/map-directions--hours-washington" }
+    ]
+  }
+]

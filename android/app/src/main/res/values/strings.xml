@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Middletown Tractor</string>
+    <string name="title_activity_main">Middletown Tractor</string>
+    <string name="package_name">com.middletowntractor.app</string>
+    <string name="custom_url_scheme">com.middletowntractor.app</string>
+</resources>

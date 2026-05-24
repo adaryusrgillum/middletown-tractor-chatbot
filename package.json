@@ -1,0 +1,14 @@
+{
+  "name": "middletown-tractor-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Middletown Tractor Sales — Android app",
+  "scripts": {
+    "build:apk": "npx cap copy android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4"
+  }
+}

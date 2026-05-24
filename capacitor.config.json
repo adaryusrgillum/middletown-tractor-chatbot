@@ -1,0 +1,11 @@
+{
+  "appId": "com.middletowntractor.app",
+  "appName": "Middletown Tractor",
+  "webDir": "site_bundle",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
