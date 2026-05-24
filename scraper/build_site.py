@@ -76,9 +76,24 @@ def product_name(p: dict) -> str:
     m = re.search(r"/Current/[^/]+(?:/[^/]+){2,}/([A-Z0-9-]+)(?:--|--)", p["url"])
     if m:
         return m.group(1).replace("-", " ")
+    # Try to pull a model from the URL even when the captured segment lives
+    # one level deeper (e.g. /Turf-Maintenance/HQ680/Base--...).
+    m = re.search(r"/Current/[^/]+(?:/[^/]+){1,}/([A-Z][A-Z0-9-]{1,})/[^/]+--", p["url"])
+    if m:
+        return m.group(1).replace("-", " ")
     # Fallback: trim the long title
     t = p["title"].split("|")[0].strip()
     return t[:50] if t else "Product"
+
+
+def is_generic_showroom(p: dict) -> bool:
+    """True when this product page lacks an identifiable model name and would
+    render as a duplicate 'Inventory Showroom' card with the same stock photo."""
+    name = product_name(p)
+    if not name or name.lower() in ("inventory showroom", "product"):
+        return True
+    title = (p.get("title") or "").split("|")[0].strip().lower()
+    return title.startswith("inventory showroom") and name.lower() == title
 
 
 def slug_for(url: str) -> str:
@@ -416,19 +431,20 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
 
 <main class="home">
 
+  <section class="brands" id="brands">
+    <div class="section-head">
+      <h2>Browse by brand</h2>
+      <p class="muted">Pick a brand to see every unit we carry.</p>
+    </div>
+    <div class="card-grid">{brand_html}</div>
+  </section>
+
   <section class="featured">
     <div class="section-head">
       <h2>Featured inventory</h2>
       <p class="muted">A taste of what we have. <a href="pages/all-inventory.html">See all units &rarr;</a></p>
     </div>
     <div class="card-grid">{featured_html}</div>
-  </section>
-
-  <section class="brands" id="brands">
-    <div class="section-head">
-      <h2>Browse by brand</h2>
-    </div>
-    <div class="card-grid">{brand_html}</div>
   </section>
 
   <section class="info">
@@ -761,6 +777,10 @@ def main() -> int:
     info_pages = classified["info"] + classified["reviews"] + classified["location"]
 
     # Group products by brand; uncategorized go to "Other"
+    # Strip generic "Inventory Showroom" pages — they all share the same
+    # category stock photo and clutter every grid they appear in.
+    products = [p for p in products if not is_generic_showroom(p)]
+
     brand_groups: dict[str, list[dict]] = defaultdict(list)
     for p in products:
         b = brand_of(p) or "Other Inventory"
@@ -780,13 +800,18 @@ def main() -> int:
     # Featured: 12 random-ish products with images, prefer diverse brands
     featured: list[dict] = []
     by_brand_seen: dict[str, int] = defaultdict(int)
+    seen_thumbs: set[str] = set()
     for p in products:
-        if not page_thumb(p, image_map):
+        if is_generic_showroom(p):
+            continue
+        thumb = page_thumb(p, image_map)
+        if not thumb or thumb in seen_thumbs:
             continue
         b = brand_of(p) or "Other"
         if by_brand_seen[b] >= 3:
             continue
         featured.append(p)
+        seen_thumbs.add(thumb)
         by_brand_seen[b] += 1
         if len(featured) >= 12:
             break
