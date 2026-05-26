@@ -391,3 +391,139 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "S
 .demo-page { max-width: 720px; margin: 60px auto; padding: 0 24px; line-height: 1.6; }
 .demo-page h1 { color: var(--mt-accent); }
 .demo-page code { background: var(--mt-surface); color: var(--mt-accent); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+
+/* ---------- Chat Custom Action Buttons & Cards ---------- */
+
+.mt-btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.mt-chat-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.mt-chat-action-btn.primary {
+  background: var(--mt-accent);
+  color: var(--mt-on-accent);
+}
+.mt-chat-action-btn.primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.mt-chat-action-btn.secondary {
+  background: var(--mt-surface-2);
+  color: var(--mt-text-strong);
+  border: 1px solid var(--mt-border-strong);
+}
+.mt-chat-action-btn.secondary:hover {
+  background: var(--mt-surface);
+  border-color: var(--mt-accent);
+  color: var(--mt-accent);
+  transform: translateY(-1px);
+}
+
+/* ---------- Comparison Card & Table ---------- */
+
+.mt-comparison-card {
+  margin-top: 10px;
+  background: var(--mt-surface-2);
+  border: 1px solid var(--mt-border-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mt-comparison-header {
+  background: var(--mt-header-bg);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mt-border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mt-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.mt-comparison-table-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.mt-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+}
+
+.mt-comparison-table th, 
+.mt-comparison-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--mt-border);
+  vertical-align: middle;
+}
+
+.mt-comparison-table th {
+  background: rgba(255, 255, 255, 0.02);
+  font-weight: 700;
+  color: var(--mt-text-strong);
+}
+
+.mt-comparison-table td.highlight {
+  background: rgba(54, 124, 43, 0.06);
+  font-weight: 600;
+  color: var(--mt-text-strong);
+  border-left: 1px solid var(--mt-jd-green);
+  border-right: 1px solid var(--mt-jd-green);
+}
+[data-theme="dark"] .mt-comparison-table td.highlight {
+  background: rgba(255, 222, 0, 0.04);
+  border-left: 1px solid var(--mt-accent);
+  border-right: 1px solid var(--mt-accent);
+}
+
+.mt-comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+.mt-comparison-table .spec-label {
+  font-weight: 600;
+  color: var(--mt-muted);
+  width: 32%;
+}
+
+.mt-comparison-table img {
+  width: 44px;
+  height: 33px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #1a2220;
+  display: block;
+}
+
+.mt-comparison-footer {
+  padding: 10px;
+  border-top: 1px solid var(--mt-border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  background: var(--mt-bg-alt);
+}

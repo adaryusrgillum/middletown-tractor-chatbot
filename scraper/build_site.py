@@ -446,8 +446,9 @@ def render_product_page(p: dict, image_map: dict[str, str]) -> str:
       <div class="product-brand">{H(brand_of(p) or "")}</div>
       <h1>{H(title)}</h1>
       <div class="product-cta">
-        <a class="btn btn-primary" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;">Ask about this unit</a>
-        <a class="btn btn-secondary" href="tel:3043664690">Call Fairmont</a>
+        <button type="button" class="btn btn-primary mt-ask-btn" data-product-slug="{H(slug_for(p['url']))}" data-product-name="{H(title)}">Ask about this unit</button>
+        <button type="button" class="btn btn-secondary mt-compare-btn" data-product-slug="{H(slug_for(p['url']))}" data-product-name="{H(title)}">Compare with others</button>
+        <a class="btn btn-ghost" href="tel:3043664690">Call Fairmont</a>
       </div>
       <div class="product-body">{body_html}</div>
       <p class="source-link"><a href="{H(p['url'])}">View on middletowntractor.com</a></p>
@@ -2089,6 +2090,50 @@ def main() -> int:
 
     (ASSETS_DIR / "canned.json").write_text(
         json.dumps(canned, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+
+    # Generate products.json for offline chatbot product details and side-by-side comparisons
+    product_list = []
+    for p in pages:
+        if is_generic_showroom(p):
+            continue
+        if page_kind(p) == "product":
+            name = product_name(p)
+            brand = brand_of(p) or "Other"
+            slug = slug_for(p["url"])
+            thumb = page_thumb(p, image_map)
+            
+            # Extract description paragraphs (filtering boilerplate)
+            paras = [para.strip() for para in (p["text"] or "").split("\n\n") if para.strip()]
+            clean_paras = []
+            for para in paras:
+                para_l = para.lower()
+                if "skip to" in para_l or "back" == para_l or "limited time" in para_l or "selling price" in para_l:
+                    continue
+                if "get a quote" in para_l or "trade value" in para_l or "get financing" in para_l or "images" == para_l:
+                    continue
+                clean_paras.append(para)
+            
+            desc = " ".join(clean_paras[:3]) if clean_paras else "Contact us for details on this unit."
+            
+            # Parse price
+            price_match = re.search(r'(?:Selling Price|Price)\s*-\s*([$\d,]+(?:\.\d{2})?)', p["text"], re.I)
+            price = price_match.group(1) if price_match else None
+            if not price:
+                dollar_match = re.search(r'\$[0-9,]+(?:\.[0-9]{2})?', p["text"])
+                price = dollar_match.group(0) if dollar_match else "Call for Price"
+                
+            product_list.append({
+                "slug": slug,
+                "name": name,
+                "brand": brand,
+                "price": price,
+                "image": thumb,
+                "desc": desc[:300] + ("..." if len(desc) > 300 else "")
+            })
+            
+    (ASSETS_DIR / "products.json").write_text(
+        json.dumps(product_list, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
     # Re-copy icons if they exist
