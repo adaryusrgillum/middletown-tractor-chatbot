@@ -77,6 +77,12 @@
     placeholder: "https://your-backend.onrender.com",
     value: localStorage.getItem("mt-backend-url") || ""
   });
+  const settingsVoice = el("input", {
+    type: "text",
+    class: "mt-settings-input",
+    placeholder: "Voice name (optional, e.g. 'alloy')",
+    value: localStorage.getItem("mt-tts-voice") || ""
+  });
   const settingsSaveBtn = el("button", { class: "mt-settings-save-btn" }, "Save Settings");
   const settingsCloseBtn = el("button", { class: "mt-settings-close", "aria-label": "Close Settings" }, "×");
   
@@ -89,6 +95,10 @@
       el("div", { class: "mt-settings-row" }, [
         el("label", { class: "mt-settings-label" }, "Backend API URL:"),
         settingsInput
+      ]),
+      el("div", { class: "mt-settings-row" }, [
+        el("label", { class: "mt-settings-label" }, "TTS Voice (optional):"),
+        settingsVoice
       ]),
       el("p", { class: "mt-settings-tip" }, "Provide the custom server URL hosting the open-source Ollama chatbot and Kokoro TTS model (leave blank to default to the production server)."),
       settingsSaveBtn
@@ -120,6 +130,7 @@
 
   settingsBtn.addEventListener("click", () => {
     settingsInput.value = localStorage.getItem("mt-backend-url") || "";
+    settingsVoice.value = localStorage.getItem("mt-tts-voice") || "";
     settingsPanel.classList.add("open");
   });
 
@@ -129,10 +140,16 @@
 
   settingsSaveBtn.addEventListener("click", () => {
     const url = settingsInput.value.trim();
+    const voice = settingsVoice.value.trim();
     if (url) {
       localStorage.setItem("mt-backend-url", url);
     } else {
       localStorage.removeItem("mt-backend-url");
+    }
+    if (voice) {
+      localStorage.setItem("mt-tts-voice", voice);
+    } else {
+      localStorage.removeItem("mt-tts-voice");
     }
     settingsPanel.classList.remove("open");
     
@@ -408,12 +425,13 @@
     const localTtsUrl = getTtsUrl();
     if (localTtsUrl) {
       try {
+        const voice = localStorage.getItem("mt-tts-voice") || undefined;
         const response = await fetch(localTtsUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ text: cleanText })
+          body: JSON.stringify({ text: cleanText, voice: voice })
         });
 
         if (!response.ok) {
