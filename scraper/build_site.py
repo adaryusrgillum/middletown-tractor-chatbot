@@ -835,21 +835,6 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
     </a>
   </section>
 
-  <!-- Shop by brands - real logos pulled from middletowntractor.com / dealerspike -->
-  <section class="brands-row" id="brands">
-    <h3 class="brands-row-title">Shop by Brands</h3>
-    <div class="brands-tiles">
-      <a class="brand-tile" href="pages/brand-john-deere.html" aria-label="John Deere">
-        {('<img src="' + H(promo_img("logo_jd") or "") + '" alt="John Deere" class="brand-logo">') if promo_img("logo_jd") else '<span class="brand-tile-name"><span class="jd">John Deere</span></span>'}
-      </a>
-      <a class="brand-tile" href="pages/brand-stihl.html" aria-label="STIHL">
-        {('<img src="' + H(promo_img("logo_stihl") or "") + '" alt="STIHL" class="brand-logo">') if promo_img("logo_stihl") else '<span class="brand-tile-name"><span class="stihl">STIHL</span></span>'}
-      </a>
-      <a class="brand-tile" href="pages/brand-other-inventory.html" aria-label="Frontier">
-        {('<img src="' + H(promo_img("logo_frontier") or "") + '" alt="Frontier" class="brand-logo brand-logo-light">') if promo_img("logo_frontier") else '<span class="brand-tile-name"><span class="frontier">Frontier</span><small class="brand-tile-sub">Rugged. Reliable.</small></span>'}
-      </a>
-    </div>
-  </section>
 
   <!-- Locations -->
   <section class="locations-section" id="locations">
@@ -861,7 +846,7 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
   </section>
 
   <!-- Browse all brands grid -->
-  <section class="brands">
+  <section class="brands" id="brands">
     <div class="section-head">
       <h2>Browse by Brand</h2>
       <p class="muted">Pick a brand to see every unit we carry.</p>
