@@ -846,15 +846,6 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
     <div class="locations-strip">{loc_summary}</div>
   </section>
 
-  <!-- Featured inventory cards -->
-  <section class="featured">
-    <div class="section-head">
-      <h2>Featured Inventory</h2>
-      <p class="muted">A taste of what we carry. <a href="pages/all-inventory.html">See all units &rarr;</a></p>
-    </div>
-    <div class="card-grid">{featured_html}</div>
-  </section>
-
   <!-- Browse all brands grid -->
   <section class="brands">
     <div class="section-head">
