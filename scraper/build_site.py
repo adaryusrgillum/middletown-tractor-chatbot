@@ -30,6 +30,10 @@ BUNDLE = ROOT / "site_bundle"
 PAGES_DIR = BUNDLE / "pages"
 ASSETS_DIR = BUNDLE / "assets"
 
+# Populated in main() from image_map: paths (relative to bundle root) for the
+# real John Deere and Middletown Tractor brand marks shown in the topbar.
+TOPBAR_LOGOS: dict[str, str] = {}
+
 LOCATIONS = [
     {"city": "Fairmont, WV",   "address": "2050 Boyers Drive, Fairmont, WV 26554",     "phone": "(304) 366-4690"},
     {"city": "Buckhannon, WV", "address": "136 Billingsley Dr, Buckhannon, WV 26201",  "phone": "(304) 473-4400"},
@@ -160,20 +164,22 @@ def head(title: str, depth: int) -> str:
 
 def topbar(depth: int) -> str:
     prefix = "../" if depth else ""
+    # Curated mark image paths (resolved from image_map by build_site.py).
+    # Falls back to hand-drawn SVG when missing.
+    jd_path = TOPBAR_LOGOS.get("jd")
+    mts_path = TOPBAR_LOGOS.get("mts")
+    jd_html = (f'<img src="{prefix}{H(jd_path)}" alt="John Deere" class="jd-mark-img">'
+               if jd_path else
+               '<svg viewBox="0 0 70 50" width="42" height="30" fill="currentColor" aria-hidden="true">'
+               '<path d="M11 38c-2-7 1-14 6-19 5-4 11-5 17-4 1 0 1 1 0 1-5 1-9 4-13 8-3 4-5 9-4 14 1 4 4 7 8 7 1 0 1 1 0 1-6 1-12-2-14-8zm22-26c-7 0-13 5-15 12 0 1 1 1 1 0 3-4 8-7 13-7s9 2 11 6c0 1 1 1 1 0 0-7-5-11-11-11zm15 16c-2-6-8-10-15-10-1 0-1 1 0 1 6 1 11 4 13 10 1 5-1 10-5 13 0 1 0 1 1 1 5-3 8-9 6-15z"/></svg>')
+    mts_html = (f'<img src="{prefix}{H(mts_path)}" alt="MTS" class="brand-logo-img">'
+                if mts_path else
+                '<span class="brand-mark" aria-hidden="true">MTS</span>'
+                '<span class="brand-text"><strong>Middletown</strong><small>Tractor Sales</small></span>')
     return f"""<header class="topbar">
-  <span class="jd-mark" aria-label="John Deere">
-    <svg viewBox="0 0 70 50" width="42" height="30" fill="currentColor" aria-hidden="true">
-      <path d="M11 38c-2-7 1-14 6-19 5-4 11-5 17-4 1 0 1 1 0 1-5 1-9 4-13 8-3 4-5 9-4 14 1 4 4 7 8 7 1 0 1 1 0 1-6 1-12-2-14-8zm22-26c-7 0-13 5-15 12 0 1 1 1 1 0 3-4 8-7 13-7s9 2 11 6c0 1 1 1 1 0 0-7-5-11-11-11zm15 16c-2-6-8-10-15-10-1 0-1 1 0 1 6 1 11 4 13 10 1 5-1 10-5 13 0 1 0 1 1 1 5-3 8-9 6-15z"/>
-    </svg>
-  </span>
+  <span class="jd-mark" aria-label="John Deere">{jd_html}</span>
   <span class="topbar-divider" aria-hidden="true"></span>
-  <a class="brand" href="{prefix}index.html" aria-label="Middletown Tractor Sales home">
-    <span class="brand-mark" aria-hidden="true">MTS</span>
-    <span class="brand-text">
-      <strong>Middletown</strong>
-      <small>Tractor Sales</small>
-    </span>
-  </a>
+  <a class="brand" href="{prefix}index.html" aria-label="Middletown Tractor Sales home">{mts_html}</a>
   <nav class="topnav">
     <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
       <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -501,8 +507,38 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
         for l in LOCATIONS
     )
 
-    # Pick a hero image from the John Deere featured set for the promo banners,
-    # falling back to a brand-themed gradient if none are available locally.
+    # Canonical promo image URLs scraped from the live site - mapped to the
+    # specific slots they were authored for.
+    PROMO_URLS = {
+        "memorial":   "https://www.middletowntractor.com/images/slideshow/Main-SlideShow/Memorial%20Day%20Hours1.jpg",
+        "deal1":      "https://www.middletowntractor.com/fckimages/Deal%201%20As%20Low%20As%20Mar%202026%20copy.jpg",
+        "earthquaker":"https://www.middletowntractor.com/fckimages/EQ%20Pkg%200%25%20WS%20Mar%202026%20copy.jpg",
+        "stihl_save": "https://www.middletowntractor.com/fckimages/Deal%203%20Stihl%203%202026%20copy.jpg",
+        "promo_new":  "https://www.middletowntractor.com/images/middletowntractor-promo3.jpg",   # Hot Fall Deals / 0%
+        "promo_used": "https://www.middletowntractor.com/fckimages/headers/john-deere5.jpg",
+        "specials":   "https://www.middletowntractor.com/images/slideshow/Main-SlideShow/Website%20specials%203%202026%20copy.jpg",
+        "parts":      "https://www.middletowntractor.com/images/middletowntractor-promo1.jpg",  # Parts-A-Thon
+        "service":    "https://www.middletowntractor.com/images/middletowntractor-promo2.jpg",  # Service banner
+        # Brand tiles
+        "logo_jd":      "https://www.middletowntractor.com/images/middletowntractor-deer.png",
+        "logo_stihl":   "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Stihl-logo.png",
+        "logo_frontier":"https://cdn.dealerspike.com/imglib/InventoryPages/makes/Frontier-logo.png",
+        "logo_ventrac": "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Ventrac-logo.png",
+        "logo_honda":   "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Honda-Power-logo.png",
+        "logo_kuhn":    "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Kuhn-logo.png",
+        "logo_alamo":   "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Alamo-Industrial-logo.png",
+        # Topbar marks
+        "topbar_jd":   "https://www.middletowntractor.com/images/middletowntractor-deer.png",
+        "topbar_mts":  "https://www.middletowntractor.com/images/middletowntractor-logo.png",
+    }
+
+    def promo_img(slot: str) -> str | None:
+        url = PROMO_URLS.get(slot)
+        if url and url in image_map:
+            return image_map[url]
+        return None
+
+    # Inventory-thumb fallbacks for cat-cards (when the curated promo is missing)
     def first_thumb(brand_name: str) -> str | None:
         for prod in brands_pages.get(brand_name, []):
             t = page_thumb(prod, image_map)
@@ -523,23 +559,26 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
             return f'<span class="bg" style="background-image:url(\'{H(thumb)}\')"></span>'
         return '<span class="bg-fallback"></span>'
 
+    # Pick the best image for each slot: curated promo first, then inventory fallback.
+    img_riding    = promo_img("deal1")        or jd_thumb
+    img_earthq    = promo_img("earthquaker")  or other_thumb or jd_thumb
+    img_stihl_save= promo_img("stihl_save")   or stihl_thumb
+    img_new       = promo_img("promo_new")    or jd_thumb
+    img_used      = promo_img("promo_used")   or other_thumb or jd_thumb
+    img_specials  = promo_img("specials")     or jd_thumb
+    img_parts     = promo_img("parts")        or jd_thumb
+    img_service   = promo_img("service")      or other_thumb
+    img_memorial  = promo_img("memorial")
+
     return f"""{head("Middletown Tractor Sales - WV & PA", depth=0)}
 <body>
 {topbar(depth=0)}
 
 <main class="home">
 
-  <!-- Featured promotional banner -->
-  <section class="promo-hero" aria-label="Featured promotion">
-    <div class="promo-hero-img">
-      <span class="promo-hero-overlay"></span>
-    </div>
-    <div class="promo-hero-body">
-      <h2>MEMORIAL DAY<br>WEEKEND</h2>
-      <p class="sub">Special Store Hours</p>
-      <span class="row">Saturday &mdash; 8:30 AM &ndash; 1:00 PM</span>
-      <span class="row">Monday &mdash; CLOSED</span>
-    </div>
+  <!-- Featured promotional banner: real Memorial Day art when present -->
+  <section class="promo-hero" aria-label="Memorial Day weekend hours">
+    {('<img class="promo-hero-art" src="' + H(img_memorial) + '" alt="Memorial Day Weekend special store hours">') if img_memorial else '<div class="promo-hero-img"></div><div class="promo-hero-body"><h2>MEMORIAL DAY<br>WEEKEND</h2><p class="sub">Special Store Hours</p><span class="row">Saturday &mdash; 8:30 AM &ndash; 1:00 PM</span><span class="row">Monday &mdash; CLOSED</span></div>'}
     <div class="promo-dots" aria-hidden="true">
       <span class="dot on"></span><span class="dot"></span>
     </div>
@@ -547,52 +586,40 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
 
   <!-- Two side-by-side promo cards -->
   <section class="promo-duo">
-    <a class="promo-card" href="pages/brand-john-deere.html" aria-label="Riding lawn equipment">
-      {card_bg(jd_thumb)}
-      <div class="inner">
-        <span class="kicker">Riding Lawn<br>Equipment</span>
-        <span class="price">$59<span style="font-size:13px;font-weight:700;color:#fff;">/mo</span></span>
-        <span class="note">From $59 per month</span>
-      </div>
+    <a class="promo-card promo-card-art" href="pages/brand-john-deere.html" aria-label="Riding lawn equipment">
+      {card_bg(img_riding)}
     </a>
-    <a class="promo-card" href="pages/brand-john-deere.html" aria-label="Tractor Package">
-      {card_bg(other_thumb or jd_thumb)}
-      <div class="inner">
-        <span class="kicker">THE TLB<br>PACKAGE</span>
-        <span class="price">0%</span>
-        <span class="note">for 84 months on select Compact Tractors</span>
-      </div>
+    <a class="promo-card promo-card-art" href="pages/brand-john-deere.html" aria-label="The EARTHQUAKER tractor package">
+      {card_bg(img_earthq)}
     </a>
   </section>
 
   <!-- Wide STIHL-style promo banner -->
-  <a class="promo-wide" href="pages/brand-stihl.html" aria-label="STIHL savings">
-    {card_bg(stihl_thumb)}
-    <span class="label">SAVE $30</span>
-    <span class="small">On Select STIHL</span>
+  <a class="promo-wide promo-wide-art" href="pages/brand-stihl.html" aria-label="STIHL savings">
+    {('<img src="' + H(img_stihl_save) + '" alt="STIHL Save $30">') if img_stihl_save else card_bg(stihl_thumb) + '<span class="label">SAVE $30</span><span class="small">On Select STIHL</span>'}
   </a>
 
   <!-- 3-up category strip: NEW EQUIP / USED EQUIP / SPECIALS -->
   <section class="cat-strip" id="specials">
     <a class="cat-card" href="pages/all-inventory.html" aria-label="New equipment">
-      {card_bg(jd_thumb)}
+      {card_bg(img_new)}
       <div class="inner">
         <span class="cat-title">New Equip</span>
-        <span class="cat-cta">View Inventory ›</span>
+        <span class="cat-cta">View Inventory &rsaquo;</span>
       </div>
     </a>
     <a class="cat-card" href="pages/all-inventory.html" aria-label="Used equipment">
-      {card_bg(other_thumb)}
+      {card_bg(img_used)}
       <div class="inner">
         <span class="cat-title">Used Equip</span>
-        <span class="cat-cta">View Inventory ›</span>
+        <span class="cat-cta">View Inventory &rsaquo;</span>
       </div>
     </a>
     <a class="cat-card" href="pages/all-inventory.html" aria-label="Specials">
-      {card_bg(stihl_thumb)}
+      {card_bg(img_specials)}
       <div class="inner">
         <span class="cat-title">Specials</span>
-        <span class="cat-cta">See More ›</span>
+        <span class="cat-cta">See More &rsaquo;</span>
       </div>
     </a>
   </section>
@@ -600,28 +627,34 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
   <!-- 2-up: Parts / Service -->
   <section class="cat-strip duo" id="parts">
     <a class="cat-card" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Parts">
-      {card_bg(jd_thumb)}
+      {card_bg(img_parts)}
       <div class="inner">
         <span class="cat-title">Parts</span>
-        <span class="cat-cta">Learn More ›</span>
+        <span class="cat-cta">Learn More &rsaquo;</span>
       </div>
     </a>
     <a class="cat-card" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Service">
-      {card_bg(other_thumb)}
+      {card_bg(img_service)}
       <div class="inner">
         <span class="cat-title">Service</span>
-        <span class="cat-cta">Learn More ›</span>
+        <span class="cat-cta">Learn More &rsaquo;</span>
       </div>
     </a>
   </section>
 
-  <!-- Shop by brands -->
+  <!-- Shop by brands - real logos pulled from middletowntractor.com / dealerspike -->
   <section class="brands-row" id="brands">
     <h3 class="brands-row-title">Shop by Brands</h3>
     <div class="brands-tiles">
-      <a class="brand-tile" href="pages/brand-john-deere.html"><span class="brand-tile-name"><span class="jd">John Deere</span></span></a>
-      <a class="brand-tile" href="pages/brand-stihl.html"><span class="brand-tile-name"><span class="stihl">STIHL</span></span></a>
-      <a class="brand-tile" href="pages/brand-other-inventory.html"><span class="brand-tile-name"><span class="frontier">Frontier</span><small class="brand-tile-sub">Rugged. Reliable.</small></span></a>
+      <a class="brand-tile" href="pages/brand-john-deere.html" aria-label="John Deere">
+        {('<img src="' + H(promo_img("logo_jd") or "") + '" alt="John Deere" class="brand-logo">') if promo_img("logo_jd") else '<span class="brand-tile-name"><span class="jd">John Deere</span></span>'}
+      </a>
+      <a class="brand-tile" href="pages/brand-stihl.html" aria-label="STIHL">
+        {('<img src="' + H(promo_img("logo_stihl") or "") + '" alt="STIHL" class="brand-logo">') if promo_img("logo_stihl") else '<span class="brand-tile-name"><span class="stihl">STIHL</span></span>'}
+      </a>
+      <a class="brand-tile" href="pages/brand-other-inventory.html" aria-label="Frontier">
+        {('<img src="' + H(promo_img("logo_frontier") or "") + '" alt="Frontier" class="brand-logo brand-logo-light">') if promo_img("logo_frontier") else '<span class="brand-tile-name"><span class="frontier">Frontier</span><small class="brand-tile-sub">Rugged. Reliable.</small></span>'}
+      </a>
     </div>
   </section>
 
@@ -807,11 +840,20 @@ p, li, .card-title, .card-meta, .card-brand { overflow-wrap: anywhere; word-wrap
 }
 .topbar .jd-mark {
   flex: 0 0 auto;
-  height: 28px; width: auto;
+  height: 32px;
   display: flex; align-items: center;
   color: var(--primary);
 }
 .topbar .jd-mark svg { display: block; }
+.topbar .jd-mark-img {
+  height: 32px; width: auto; display: block;
+  /* Keep deer green on the always-black topbar */
+  filter: drop-shadow(0 0 0 transparent);
+}
+.brand-logo-img {
+  height: 30px; width: auto; display: block;
+  /* The logo has green + yellow brand marks - leave colors intact on black topbar. */
+}
 .topbar-divider {
   width: 1px; height: 28px;
   background: rgba(255, 255, 255, 0.16);
@@ -949,6 +991,51 @@ p, li, .card-title, .card-meta, .card-brand { overflow-wrap: anywhere; word-wrap
 }
 .promo-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: #c4cbc6; }
 .promo-dots .dot.on { background: var(--primary); }
+
+/* Promo hero - full-bleed banner image (replaces the gradient fallback) */
+.promo-hero-art {
+  display: block; width: 100%; height: auto;
+  background: #ffffff;
+}
+
+/* Promo cards: when a full art image is supplied, hide the text overlay and let the
+   designed graphic do all the work (these banners are pre-composed with their own
+   typography, prices, and brand marks). */
+.promo-card-art { aspect-ratio: 16/9; }
+.promo-card-art .inner { display: none; }
+.promo-card-art::after { display: none; }
+.promo-card-art .bg {
+  background-image: none;          /* inline style="background-image:url(...)" wins */
+  background-color: #0a0e0c;
+  background-size: contain;
+  background-color: #0d1311;
+}
+
+/* Wide promo: when an art image is supplied, render it directly inside the
+   anchor at intrinsic aspect ratio. */
+.promo-wide-art {
+  background: transparent;
+  aspect-ratio: auto;
+  display: block;
+  padding: 0;
+}
+.promo-wide-art img { display: block; width: 100%; height: auto; border-radius: inherit; }
+.promo-wide-art .bg, .promo-wide-art .label, .promo-wide-art .small { display: none; }
+
+/* Brand tile logos */
+.brand-logo {
+  max-height: 36px;
+  max-width: 90%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+[data-theme="dark"] .brand-logo-light {
+  /* Frontier logo is white-on-transparent. In light mode we tint it dark so it shows. */
+}
+[data-theme="light"] .brand-logo-light {
+  filter: invert(1) brightness(0.5);
+}
 
 /* ---------- Duo promo (two cards side by side) ---------- */
 .promo-duo {
@@ -1526,6 +1613,12 @@ def main() -> int:
 
     pages = json.loads(pages_path.read_text(encoding="utf-8"))
     image_map = json.loads(image_map_path.read_text(encoding="utf-8")) if image_map_path.exists() else {}
+
+    # Wire the real JD/MTS marks into the topbar if we've scraped them.
+    JD_URL = "https://www.middletowntractor.com/images/middletowntractor-deer.png"
+    MTS_URL = "https://www.middletowntractor.com/images/middletowntractor-logo.png"
+    if JD_URL in image_map:  TOPBAR_LOGOS["jd"] = image_map[JD_URL]
+    if MTS_URL in image_map: TOPBAR_LOGOS["mts"] = image_map[MTS_URL]
 
     # Wipe + recreate output dirs
     if PAGES_DIR.exists():
