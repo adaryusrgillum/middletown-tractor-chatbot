@@ -326,16 +326,61 @@ def product_card(p: dict, image_map: dict[str, str], depth: int = 0) -> str:
 </a>"""
 
 
+# Brand name (canonical, as used in URLs / cards) -> remote logo URL.
+# These are the scraped dealerspike / middletowntractor logos. Resolved to local
+# paths via image_map at render time.
+BRAND_LOGO_URLS: dict[str, str] = {
+    "John Deere":        "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/John-Deere-logo.png",
+    "STIHL":             "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Stihl-logo.png",
+    "Ventrac":           "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Ventrac-logo.png",
+    "Honda Power":       "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Honda-Power-logo.png",
+    "Frontier":          "https://cdn.dealerspike.com/imglib/InventoryPages/makes/Frontier-logo.png",
+    "Kuhn":              "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Kuhn-logo.png",
+    "Alamo Industrial":  "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Alamo-Industrial-logo.png",
+}
+
+# brand -> {"light": css color hint, "dark": css color hint} - used for the
+# tile background when a logo isn't transparent enough on the active theme.
+BRAND_TILE_BG: dict[str, str] = {
+    "John Deere":       "#fff",      # JD logo is green+yellow on white in this PNG
+    "STIHL":            "#f76707",   # STIHL logo is white on orange
+    "Honda Power":      "#fff",
+    "Ventrac":          "#fff",
+    "Frontier":         "#1a1f1c",   # Frontier logo is white text on dark
+    "Kuhn":             "#fff",
+    "Alamo Industrial": "#fff",
+}
+
+# Resolved at runtime from image_map: brand -> local image path.
+BRAND_LOGOS: dict[str, str] = {}
+
+
+def brand_logo_class(brand: str) -> str:
+    """Slugify brand for CSS class hooks like .brand-card-jd, .brand-card-stihl."""
+    return "brand-card-" + re.sub(r"[^a-z0-9]+", "-", brand.lower()).strip("-")
+
+
 def brand_card(brand: str, count: int, thumb: str | None) -> str:
     alt = f"{brand} inventory"
-    img_html = (
-        f'<div class="card-img"><img loading="lazy" src="{H(thumb)}" alt="{H(alt)}"></div>'
-        if thumb else
-        f'<div class="card-img card-img-empty" aria-label="{H(alt)}">'
-        f'<span class="card-img-fallback">{H(brand)}</span>'
-        f'</div>'
-    )
-    return f"""<a class="card brand-card" href="pages/{H(brand_slug(brand))}" aria-label="{H(alt)}">
+    logo = BRAND_LOGOS.get(brand)
+    cls = brand_logo_class(brand)
+    if logo:
+        img_html = (
+            f'<div class="card-img card-img-logo">'
+            f'<img loading="lazy" src="{H(logo)}" alt="{H(brand)} logo">'
+            f'</div>'
+        )
+    elif thumb:
+        # Fallback to inventory thumb when we have no canonical brand logo
+        # (e.g. the synthetic "Other Inventory" bucket).
+        img_html = f'<div class="card-img"><img loading="lazy" src="{H(thumb)}" alt="{H(alt)}"></div>'
+    else:
+        img_html = (
+            f'<div class="card-img card-img-empty" aria-label="{H(alt)}">'
+            f'<span class="card-img-fallback">{H(brand)}</span>'
+            f'</div>'
+        )
+    return f"""<a class="card brand-card {cls}" href="pages/{H(brand_slug(brand))}" aria-label="{H(alt)}">
   {img_html}
   <div class="card-body">
     <div class="card-title">{H(brand)}</div>
@@ -437,11 +482,20 @@ def render_info_page(p: dict, image_map: dict[str, str]) -> str:
 
 def render_brand_listing(brand: str, products: list[dict], image_map: dict[str, str]) -> str:
     cards = "\n".join(product_card(p, image_map, depth=1) for p in products)
+    logo = BRAND_LOGOS.get(brand)
+    cls = brand_logo_class(brand)
+    logo_html = (
+        f'<div class="brand-banner {cls}">'
+        f'<img src="../{H(logo)}" alt="{H(brand)} logo">'
+        f'</div>'
+        if logo else ""
+    )
     return f"""{head(brand + " Inventory | Middletown Tractor", depth=1)}
 <body>
 {topbar(depth=1)}
 <main class="listing-page">
   <a class="back" href="../index.html">&larr; Back to home</a>
+  {logo_html}
   <h1>{H(brand)} Inventory</h1>
   <p class="listing-meta">{len(products)} items currently listed across our 4 locations</p>
   <div class="card-grid">{cards}</div>
@@ -1480,14 +1534,54 @@ section { margin: clamp(20px, 4vw, 32px) 0; }
 .card-title { font-weight: 700; font-size: 14px; margin-top: 4px; line-height: 1.3; color: var(--text-strong); }
 .card-meta { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
 
-/* Brand cards: square-ish with overlay gradient */
+/* Brand cards: square tile that ALWAYS holds the logo, theme-aware backdrop. */
 .brand-card .card-img { aspect-ratio: 1/1; }
-.brand-card .card-img::after {
+/* Darkening overlay only when we're falling back to an inventory photo */
+.brand-card .card-img:not(.card-img-logo):not(.card-img-empty)::after {
   content: "";
   position: absolute; inset: 0;
   background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.65) 100%);
   pointer-events: none;
 }
+
+/* Logo card variant - centered, padded, light-themed plate that reads on both
+   dark and light app themes (the dealer's logos were authored for white). */
+.card-img-logo {
+  background: #ffffff;
+  padding: 18% 16%;
+}
+.card-img-logo img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+  transform: none !important;   /* override .card:hover scale-up */
+}
+
+/* Per-brand backdrops so transparent/dark-only logos still read. */
+.brand-card-stihl .card-img-logo { background: #f76707; }
+.brand-card-frontier .card-img-logo { background: #1a1f1c; padding: 22% 16%; }
+.brand-card-frontier .card-img-logo img { filter: brightness(1.1); }
+
+/* Brand banner at the top of a brand-listing page */
+.brand-banner {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8px 0 18px;
+  min-height: 96px;
+}
+.brand-banner img {
+  max-height: 64px;
+  max-width: 70%;
+  width: auto;
+  object-fit: contain;
+}
+.brand-banner.brand-card-stihl { background: #f76707; }
+.brand-banner.brand-card-frontier { background: #1a1f1c; }
+.brand-banner.brand-card-frontier img { filter: brightness(1.1); }
 
 /* ---------- Info links ---------- */
 .info-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
@@ -1820,6 +1914,11 @@ def main() -> int:
     MTS_URL = "https://www.middletowntractor.com/images/middletowntractor-logo.png"
     if JD_URL in image_map:  TOPBAR_LOGOS["jd"] = image_map[JD_URL]
     if MTS_URL in image_map: TOPBAR_LOGOS["mts"] = image_map[MTS_URL]
+
+    # Wire the canonical brand logos so brand cards render the real marks.
+    for brand_name, url in BRAND_LOGO_URLS.items():
+        if url in image_map:
+            BRAND_LOGOS[brand_name] = image_map[url]
 
     # Wipe + recreate output dirs
     if PAGES_DIR.exists():
