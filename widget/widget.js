@@ -13,31 +13,12 @@
     window.MT_CHAT_CONFIG || {}
   );
 
-  function getBackendUrl() {
-    if (window.MT_BACKEND_URL) return window.MT_BACKEND_URL.replace(/\/$/, '');
-    if (window.Capacitor) {
-      return 'http://localhost:8000';
-    }
-    return '';
-  }
-
   function getApiUrl() {
-    const backend = getBackendUrl();
-    if (backend) return backend + '/api/chat';
-    if (!window.Capacitor && CONFIG.apiUrl && CONFIG.apiUrl.startsWith('/')) {
-      return CONFIG.apiUrl;
-    }
-    return '';
+    return 'http://localhost:8000/api/chat';
   }
 
   function getTtsUrl() {
-    const backend = getBackendUrl();
-    if (backend) return backend + '/api/tts';
-    const base = CONFIG.apiUrl || '/api/chat';
-    if (!window.Capacitor && base.startsWith('/')) {
-      return base.replace(/\/chat$/, "/tts");
-    }
-    return '';
+    return 'http://localhost:8000/api/tts';
   }
 
   /** Loaded from /api/suggestions: [{question, answer, sources, cards, images}]. */
