@@ -491,6 +491,131 @@ def render_all_inventory(products_by_brand: dict[str, list[dict]], image_map: di
 """
 
 
+def render_schedule_page() -> str:
+    """Schedule Service / Maintenance form. Posts to the backend's
+    /api/service-request endpoint and pushes a notification to the dealer."""
+    location_opts = "\n".join(
+        f'        <label class="form-radio"><input type="radio" name="location" value="{H(l["city"])}" required><span>{H(l["city"])}</span></label>'
+        for l in LOCATIONS
+    ) + '\n        <label class="form-radio"><input type="radio" name="location" value="No preference"><span>No preference</span></label>'
+
+    service_opts = "\n".join(
+        f'        <label class="form-radio"><input type="radio" name="service_type" value="{v}" required><span>{v}</span></label>'
+        for v in ("Routine maintenance", "Repair / diagnostic",
+                  "Mobile / on-site service", "Pickup & delivery",
+                  "Parts inquiry", "Other")
+    )
+
+    return f"""{head("Schedule Service | Middletown Tractor", depth=1)}
+<body>
+{topbar(depth=1)}
+<main class="info-page schedule-page">
+  <a class="back" href="../index.html">&larr; Back to home</a>
+  <article>
+    <h1>Schedule Service or Maintenance</h1>
+    <p class="muted">Fill this out and we'll ring your nearest store - a tech will reach back within one business day to confirm timing.</p>
+
+    <form id="service-form" novalidate>
+      <fieldset>
+        <label class="form-row">
+          <span class="form-label">Your name</span>
+          <input type="text" name="name" required autocomplete="name" maxlength="120">
+        </label>
+        <div class="form-grid-2">
+          <label class="form-row">
+            <span class="form-label">Phone</span>
+            <input type="tel" name="phone" required autocomplete="tel" inputmode="tel" maxlength="40" placeholder="(304) 555-0100">
+          </label>
+          <label class="form-row">
+            <span class="form-label">Email</span>
+            <input type="email" name="email" required autocomplete="email" maxlength="120" placeholder="you@example.com">
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="form-legend">Which location?</legend>
+        <div class="form-radio-grid">
+{location_opts}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="form-legend">What kind of service?</legend>
+        <div class="form-radio-grid">
+{service_opts}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <label class="form-row">
+          <span class="form-label">Equipment (make / model / year)</span>
+          <input type="text" name="equipment" maxlength="240" placeholder="John Deere 1025R, 2022">
+        </label>
+        <label class="form-row">
+          <span class="form-label">Preferred date or week</span>
+          <input type="text" name="preferred_date" maxlength="40" placeholder="Week of June 9, or any Tuesday morning">
+        </label>
+        <label class="form-row">
+          <span class="form-label">Anything we should know?</span>
+          <textarea name="notes" rows="4" maxlength="2000" placeholder="What's the symptom, last service date, anything fragile..."></textarea>
+        </label>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary btn-lg" id="service-submit">Send request</button>
+        <span class="form-status" id="service-status" aria-live="polite"></span>
+      </div>
+    </form>
+
+    <p class="muted small-print">Submitted requests are forwarded to the service desk instantly via push notification. You can also <a href="tel:3043664690">call Fairmont</a> or <a href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;">ask the chatbot</a>.</p>
+  </article>
+</main>
+
+<script>
+(function(){{
+  var form = document.getElementById('service-form');
+  var status = document.getElementById('service-status');
+  var btn = document.getElementById('service-submit');
+  var BACKEND = window.MT_BACKEND_URL || '';
+  form.addEventListener('submit', async function(e){{
+    e.preventDefault();
+    if (!BACKEND) {{
+      status.textContent = 'No backend URL configured. Set window.MT_BACKEND_URL.';
+      status.className = 'form-status err';
+      return;
+    }}
+    if (!form.checkValidity()) {{ form.reportValidity(); return; }}
+    var data = Object.fromEntries(new FormData(form).entries());
+    btn.disabled = true; status.textContent = 'Sending…'; status.className = 'form-status';
+    try {{
+      var r = await fetch(BACKEND.replace(/\\/$/,'') + '/api/service-request', {{
+        method: 'POST',
+        headers: {{ 'Content-Type': 'application/json' }},
+        body: JSON.stringify(data),
+      }});
+      var body = await r.json().catch(function(){{ return {{}}; }});
+      if (!r.ok) throw new Error(body.detail || ('HTTP ' + r.status));
+      status.textContent = body.message || 'Thanks - request received.';
+      status.className = 'form-status ok';
+      form.reset();
+    }} catch (err) {{
+      status.textContent = 'Could not send (' + err.message + '). Please call us.';
+      status.className = 'form-status err';
+    }} finally {{
+      btn.disabled = false;
+    }}
+  }});
+}})();
+</script>
+
+{footer(depth=1)}
+{bottom_nav(depth=1, active="more")}
+{chat_root(depth=1)}
+</body></html>
+"""
+
+
 def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]],
                  info_pages: list[dict], image_map: dict[str, str]) -> str:
     featured_html = "\n".join(product_card(p, image_map, depth=0) for p in featured)
@@ -633,11 +758,11 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
         <span class="cat-cta">Learn More &rsaquo;</span>
       </div>
     </a>
-    <a class="cat-card" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Service">
+    <a class="cat-card" href="pages/schedule-service.html" aria-label="Schedule service">
       {card_bg(img_service)}
       <div class="inner">
         <span class="cat-title">Service</span>
-        <span class="cat-cta">Learn More &rsaquo;</span>
+        <span class="cat-cta">Schedule Now &rsaquo;</span>
       </div>
     </a>
   </section>
@@ -1475,6 +1600,82 @@ section { margin: clamp(20px, 4vw, 32px) 0; }
   .info-img { height: 150px; }
 }
 
+/* ---------- Schedule Service form ---------- */
+.schedule-page .small-print { font-size: 12.5px; margin-top: 18px; }
+.schedule-page form { margin-top: 12px; display: flex; flex-direction: column; gap: 18px; }
+.schedule-page fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px 16px;
+  background: var(--surface-2);
+  margin: 0;
+  min-width: 0;
+}
+.schedule-page .form-legend {
+  font-size: 12px; font-weight: 800;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent); padding: 0 4px;
+}
+.schedule-page .form-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.schedule-page .form-row:last-child { margin-bottom: 0; }
+.schedule-page .form-label { font-size: 12.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.schedule-page input[type="text"],
+.schedule-page input[type="tel"],
+.schedule-page input[type="email"],
+.schedule-page textarea {
+  background: var(--bg);
+  color: var(--text-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 15px; font-family: inherit;
+  width: 100%; min-width: 0; box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.schedule-page textarea { resize: vertical; min-height: 100px; }
+.schedule-page input:focus,
+.schedule-page textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(54, 124, 43, 0.18);
+}
+.schedule-page .form-grid-2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 520px) { .schedule-page .form-grid-2 { grid-template-columns: 1fr 1fr; } }
+.schedule-page .form-radio-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+@media (min-width: 640px) { .schedule-page .form-radio-grid { grid-template-columns: 1fr 1fr 1fr; } }
+.schedule-page .form-radio {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 13.5px; font-weight: 600;
+  color: var(--text);
+  transition: border-color 0.15s ease, background 0.15s ease;
+  min-width: 0;
+}
+.schedule-page .form-radio:hover { border-color: var(--accent); }
+.schedule-page .form-radio input { accent-color: var(--accent); flex: 0 0 auto; }
+.schedule-page .form-radio span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedule-page .form-radio:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(54, 124, 43, 0.10);
+  color: var(--text-strong);
+}
+[data-theme="dark"] .schedule-page .form-radio:has(input:checked) {
+  background: rgba(255, 222, 0, 0.10);
+}
+.schedule-page .form-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.schedule-page .form-status { font-size: 13.5px; color: var(--text-muted); }
+.schedule-page .form-status.ok { color: var(--accent); font-weight: 700; }
+.schedule-page .form-status.err { color: var(--brand-red); font-weight: 700; }
+
 /* ---------- Listing page ---------- */
 .listing-page h1 { color: var(--text-strong); margin: 8px 0 6px; font-size: clamp(24px, 5.4vw, 34px); font-weight: 800; letter-spacing: -0.02em; }
 .listing-meta { color: var(--text-muted); margin: 0 0 20px; font-size: 14px; }
@@ -1696,6 +1897,11 @@ def main() -> int:
             image_map,
         ),
         encoding="utf-8",
+    )
+
+    # Schedule-service form page
+    (PAGES_DIR / "schedule-service.html").write_text(
+        render_schedule_page(), encoding="utf-8",
     )
 
     # Render info / category / location / reviews pages

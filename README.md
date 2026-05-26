@@ -113,6 +113,70 @@ The chatbot widget works **fully offline** for the 10 suggestion chips (canned J
 3. Grant "Install unknown apps" permission for that source when prompted
 4. Tap **Install**
 
+## Schedule Service form + push notifications
+
+The app has a **Schedule Service / Maintenance** form (linked from the "Service"
+card on the home page, available at `pages/schedule-service.html` inside the
+APK). Submissions POST to the FastAPI backend, which:
+
+1. Stores the request in `backend/service_requests.db` (SQLite, gitignored).
+2. Sends a real-time push notification to your phone via [ntfy.sh](https://ntfy.sh).
+
+### Setup (one time)
+
+1. **Pick a hard-to-guess ntfy topic.** Anyone who knows the topic name can
+   subscribe to it, so treat it like a low-stakes password. Example:
+   `mts-svc-7f2k9q1x`.
+2. **Install the ntfy app** on your phone (iOS App Store / Google Play / F-Droid).
+3. In the ntfy app, tap **+** → enter your topic name → subscribe.
+4. **Configure the backend** with the topic via env var:
+
+   ```bash
+   # backend/.env (or Render dashboard)
+   NTFY_TOPIC=mts-svc-7f2k9q1x
+   ```
+
+5. **Deploy the backend** so phones can reach it (see "Deploy" below), or run
+   it locally for testing: `uvicorn backend.server:app --port 8000`.
+6. In `widget/index.html` (web) or `site_bundle/pages/schedule-service.html`
+   (APK), set the backend URL:
+
+   ```html
+   <script>window.MT_BACKEND_URL = "https://your-backend.onrender.com";</script>
+   ```
+
+   Or rebuild the bundle with that snippet templated in.
+
+### Testing locally
+
+```bash
+# Submit a request
+curl -X POST http://localhost:8000/api/service-request \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Test","phone":"304-555-0100","email":"t@x.com",
+       "location":"Fairmont, WV","service_type":"Routine maintenance",
+       "equipment":"John Deere 1025R","notes":"100-hr service"}'
+
+# See recent requests
+curl http://localhost:8000/api/service-requests/recent
+```
+
+### Deploy the backend (Render free tier)
+
+`render.yaml` at the repo root configures a free Render web service. Steps:
+
+1. Push to a GitHub repo Render can read.
+2. In Render: **New + → Blueprint → pick the repo → Apply**.
+3. After provisioning, open the service in the dashboard and set the secret
+   `NTFY_TOPIC` (and optionally `OLLAMA_HOST` if you wire the chatbot up to a
+   remote LLM).
+4. Render gives you a URL like `https://middletown-tractor-backend.onrender.com`.
+   Use that as `MT_BACKEND_URL` when you rebuild the site / APK.
+
+Render's free tier spins down after 15 min of inactivity (cold-start ~30s).
+Requests during sleep still go through, just with a delay — fine for low-traffic
+service requests.
+
 ## Architecture notes
 
 - **Retrieval**: BM25 over chunks of scraped text. A location-name boost (`+50` for matching city, `-50` for the others) ensures Buckhannon questions only retrieve the Buckhannon chunk — keeps small models from mixing up addresses.

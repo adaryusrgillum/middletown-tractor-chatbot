@@ -14,8 +14,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 import requests
 from dotenv import load_dotenv
@@ -23,7 +25,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from rank_bm25 import BM25Okapi
 
 load_dotenv()
@@ -39,6 +41,14 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma2:2b")
 OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
 TOP_K = 3
 MAX_OUTPUT_TOKENS = 400
+
+# Service-request notifier (ntfy.sh).
+# Pick a hard-to-guess topic name (e.g. "mts-service-7f2k9q1x") and subscribe to
+# it from the ntfy mobile app. Set NTFY_TOPIC in your environment / .env file.
+NTFY_URL = os.getenv("NTFY_URL", "https://ntfy.sh").rstrip("/")
+NTFY_TOPIC = os.getenv("NTFY_TOPIC", "").strip()
+
+SERVICE_DB_PATH = ROOT / "backend" / "service_requests.db"
 
 SYSTEM_PROMPT = """You are the helpful chatbot for Middletown Tractor Sales, a John Deere dealer with four locations in WV and PA: Fairmont WV, Buckhannon WV, Uniontown PA, and Washington PA.
 
@@ -139,6 +149,94 @@ def ollama_available() -> tuple[bool, str]:
             f"Run: ollama pull {OLLAMA_MODEL}"
         )
     return True, f"Ollama OK ({OLLAMA_MODEL})"
+
+
+# ---------- Service requests ----------
+
+LOCATION_CHOICES = (
+    "Fairmont, WV",
+    "Buckhannon, WV",
+    "Uniontown, PA",
+    "Washington, PA",
+    "No preference",
+)
+
+SERVICE_TYPE_CHOICES = (
+    "Routine maintenance",
+    "Repair / diagnostic",
+    "Mobile / on-site service",
+    "Pickup & delivery",
+    "Parts inquiry",
+    "Other",
+)
+
+
+def init_service_db() -> None:
+    """Create the service_requests table if it doesn't exist."""
+    with sqlite3.connect(SERVICE_DB_PATH) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS service_requests (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at    TEXT NOT NULL,
+                name          TEXT NOT NULL,
+                phone         TEXT NOT NULL,
+                email         TEXT NOT NULL,
+                location      TEXT NOT NULL,
+                service_type  TEXT NOT NULL,
+                equipment     TEXT,
+                preferred_date TEXT,
+                notes         TEXT,
+                notified      INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        conn.commit()
+
+
+init_service_db()
+
+
+class ServiceRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    phone: str = Field(min_length=7, max_length=40)
+    email: EmailStr
+    location: str
+    service_type: str
+    equipment: Optional[str] = Field(default=None, max_length=240)
+    preferred_date: Optional[str] = Field(default=None, max_length=40)
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
+def _notify_ntfy(req: ServiceRequest, request_id: int) -> bool:
+    """POST the new request to ntfy.sh; returns True on 2xx."""
+    if not NTFY_TOPIC:
+        print("[warn] NTFY_TOPIC is not set; skipping push notification")
+        return False
+    body_lines = [
+        f"{req.service_type} @ {req.location}",
+        f"From: {req.name}  ({req.phone} / {req.email})",
+    ]
+    if req.equipment:
+        body_lines.append(f"Equipment: {req.equipment}")
+    if req.preferred_date:
+        body_lines.append(f"Preferred: {req.preferred_date}")
+    if req.notes:
+        body_lines.append("")
+        body_lines.append(req.notes[:500])
+    body = "\n".join(body_lines).encode("utf-8")
+    headers = {
+        "Title": f"New service request #{request_id}",
+        "Priority": "high",
+        "Tags": "wrench,tractor2,bell",
+        "Click": f"tel:{re.sub(r'[^0-9+]', '', req.phone)}",
+    }
+    try:
+        r = requests.post(f"{NTFY_URL}/{NTFY_TOPIC}", data=body, headers=headers, timeout=10)
+        return 200 <= r.status_code < 300
+    except requests.RequestException as e:
+        print(f"[warn] ntfy notify failed: {e}")
+        return False
 
 
 # ---------- API ----------
@@ -273,6 +371,62 @@ def suggestions():
     accurate. Edit canned.json to change them.
     """
     return _load_canned()
+
+
+@app.post("/api/service-request")
+def submit_service_request(req: ServiceRequest):
+    """Store a new service / maintenance request and push-notify the dealer."""
+    if req.location not in LOCATION_CHOICES:
+        raise HTTPException(400, f"location must be one of: {', '.join(LOCATION_CHOICES)}")
+    if req.service_type not in SERVICE_TYPE_CHOICES:
+        raise HTTPException(400, f"service_type must be one of: {', '.join(SERVICE_TYPE_CHOICES)}")
+
+    created = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with sqlite3.connect(SERVICE_DB_PATH) as conn:
+        cur = conn.execute(
+            """INSERT INTO service_requests
+               (created_at, name, phone, email, location, service_type,
+                equipment, preferred_date, notes, notified)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)""",
+            (created, req.name, req.phone, req.email, req.location, req.service_type,
+             req.equipment, req.preferred_date, req.notes),
+        )
+        request_id = cur.lastrowid
+        conn.commit()
+
+    notified = _notify_ntfy(req, request_id)
+    if notified:
+        with sqlite3.connect(SERVICE_DB_PATH) as conn:
+            conn.execute("UPDATE service_requests SET notified=1 WHERE id=?", (request_id,))
+            conn.commit()
+
+    return {
+        "ok": True,
+        "id": request_id,
+        "created_at": created,
+        "notified": notified,
+        "message": "Thanks - we'll be in touch shortly to confirm.",
+    }
+
+
+@app.get("/api/service-request/options")
+def service_request_options():
+    """Returns the allowed values so the form can render the same choices the
+    backend will validate against."""
+    return {"locations": list(LOCATION_CHOICES), "service_types": list(SERVICE_TYPE_CHOICES)}
+
+
+@app.get("/api/service-requests/recent")
+def service_requests_recent(limit: int = 50):
+    """Admin / debug: list the most recent requests. Protect with a reverse
+    proxy auth header in production if exposed publicly."""
+    limit = max(1, min(limit, 500))
+    with sqlite3.connect(SERVICE_DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT * FROM service_requests ORDER BY id DESC LIMIT ?", (limit,)
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 @app.middleware("http")

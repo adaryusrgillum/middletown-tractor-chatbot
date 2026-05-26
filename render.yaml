@@ -1,0 +1,32 @@
+# Render free-tier deployment for the Middletown Tractor backend.
+# Push this file to the default branch, then in Render:
+#   New + → Blueprint → pick this repo → deploy.
+#
+# Set the following env vars in the Render dashboard (or via Secret File):
+#   NTFY_TOPIC      = a hard-to-guess topic name (e.g. mts-svc-7f2k9q1x)
+#                     Subscribe to this same topic in the ntfy mobile app to
+#                     get push notifications whenever someone submits the form.
+#   NTFY_URL        = (optional) defaults to https://ntfy.sh
+#   OLLAMA_HOST     = (optional) only needed if you wire the chatbot up to a
+#                     remote Ollama; without it /api/chat returns 503 but the
+#                     /api/service-request endpoint still works.
+
+services:
+  - type: web
+    name: middletown-tractor-backend
+    runtime: python
+    plan: free
+    region: ohio          # closest to WV / PA
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: NTFY_URL
+        value: https://ntfy.sh
+      - key: NTFY_TOPIC
+        sync: false       # set this in the dashboard, don't commit
+      - key: OLLAMA_HOST
+        sync: false       # optional
