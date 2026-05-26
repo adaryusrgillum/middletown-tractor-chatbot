@@ -14,11 +14,9 @@
   );
 
   function getBackendUrl() {
-    const stored = localStorage.getItem('mt-backend-url');
-    if (stored) return stored.replace(/\/$/, '');
     if (window.MT_BACKEND_URL) return window.MT_BACKEND_URL.replace(/\/$/, '');
     if (window.Capacitor) {
-      return 'https://middletown-tractor-backend.onrender.com';
+      return 'http://localhost:8000';
     }
     return '';
   }
@@ -58,52 +56,16 @@
   const launcher = el("button", { class: "mt-launcher", title: "Chat with us", "aria-label": "Open chat" }, "💬");
   const panel = el("div", { class: "mt-panel", role: "dialog", "aria-label": "Middletown Tractor chat" });
 
-  const settingsBtn = el("button", { class: "mt-settings-toggle-btn", title: "Settings", "aria-label": "Settings" }, "⚙️");
   const header = el("div", { class: "mt-header" }, [
     el("div", { class: "mt-header-text" }, [
       el("h3", {}, "Middletown Tractor"),
       el("div", { class: "mt-subtitle" }, "Ask us anything"),
     ]),
     el("div", { class: "mt-header-actions" }, [
-      settingsBtn,
       el("button", { class: "mt-close", title: "Close", "aria-label": "Close chat" }, "×")
     ])
   ]);
   const messagesEl = el("div", { class: "mt-messages" });
-
-  const settingsInput = el("input", {
-    type: "url",
-    class: "mt-settings-input",
-    placeholder: "https://your-backend.onrender.com",
-    value: localStorage.getItem("mt-backend-url") || ""
-  });
-  const settingsVoice = el("input", {
-    type: "text",
-    class: "mt-settings-input",
-    placeholder: "Voice name (optional, e.g. 'alloy')",
-    value: localStorage.getItem("mt-tts-voice") || ""
-  });
-  const settingsSaveBtn = el("button", { class: "mt-settings-save-btn" }, "Save Settings");
-  const settingsCloseBtn = el("button", { class: "mt-settings-close", "aria-label": "Close Settings" }, "×");
-  
-  const settingsPanel = el("div", { class: "mt-settings-panel" }, [
-    el("div", { class: "mt-settings-header" }, [
-      el("h4", {}, "Chat Settings"),
-      settingsCloseBtn
-    ]),
-    el("div", { class: "mt-settings-body" }, [
-      el("div", { class: "mt-settings-row" }, [
-        el("label", { class: "mt-settings-label" }, "Backend API URL:"),
-        settingsInput
-      ]),
-      el("div", { class: "mt-settings-row" }, [
-        el("label", { class: "mt-settings-label" }, "TTS Voice (optional):"),
-        settingsVoice
-      ]),
-      el("p", { class: "mt-settings-tip" }, "Provide the custom server URL hosting the open-source Ollama chatbot and Kokoro TTS model (leave blank to default to the production server)."),
-      settingsSaveBtn
-    ])
-  ]);
   const suggestionsToggle = el(
     "button",
     { class: "mt-suggestions-toggle", type: "button" },
@@ -125,40 +87,8 @@
   const sendBtn = el("button", { class: "mt-send" }, "Send");
   const inputRow = el("div", { class: "mt-input-row" }, [textarea, sendBtn]);
 
-  panel.append(header, messagesEl, suggestionsWrap, inputRow, settingsPanel);
+  panel.append(header, messagesEl, suggestionsWrap, inputRow);
   root.append(launcher, panel);
-
-  settingsBtn.addEventListener("click", () => {
-    settingsInput.value = localStorage.getItem("mt-backend-url") || "";
-    settingsVoice.value = localStorage.getItem("mt-tts-voice") || "";
-    settingsPanel.classList.add("open");
-  });
-
-  settingsCloseBtn.addEventListener("click", () => {
-    settingsPanel.classList.remove("open");
-  });
-
-  settingsSaveBtn.addEventListener("click", () => {
-    const url = settingsInput.value.trim();
-    const voice = settingsVoice.value.trim();
-    if (url) {
-      localStorage.setItem("mt-backend-url", url);
-    } else {
-      localStorage.removeItem("mt-backend-url");
-    }
-    if (voice) {
-      localStorage.setItem("mt-tts-voice", voice);
-    } else {
-      localStorage.removeItem("mt-tts-voice");
-    }
-    settingsPanel.classList.remove("open");
-    
-    // Add a system notification in the message box
-    const sysMsg = appendAssistantPlaceholder();
-    setTimeout(() => {
-      renderAssistant(sysMsg, `🔧 **System**: Backend URL updated to: \`${url || 'Default Production Server'}\`.`, [], {});
-    }, 400);
-  });
 
   const COLLAPSE_KEY = "mt-chat-suggestions-collapsed";
   let suggestionsCollapsed = localStorage.getItem(COLLAPSE_KEY) === "1";
@@ -425,13 +355,12 @@
     const localTtsUrl = getTtsUrl();
     if (localTtsUrl) {
       try {
-        const voice = localStorage.getItem("mt-tts-voice") || undefined;
         const response = await fetch(localTtsUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ text: cleanText, voice: voice })
+          body: JSON.stringify({ text: cleanText })
         });
 
         if (!response.ok) {
