@@ -19,6 +19,8 @@ import sys
 import time
 from pathlib import Path
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor
+import threading
 
 import requests
 
@@ -31,7 +33,6 @@ HEADERS = {
     "Referer": "https://www.middletowntractor.com/",
 }
 
-DELAY_SEC = 0.1
 TIMEOUT = 20
 SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
@@ -53,6 +54,22 @@ def safe_filename(url: str) -> str:
     return f"{name}_{h}.{ext}"
 
 
+def download_one(url: str, out_dir: Path, session: requests.Session) -> tuple[str, str | None]:
+    fname = safe_filename(url)
+    dest = out_dir / fname
+    rel = f"images/{fname}"
+    if dest.exists() and dest.stat().st_size > 0:
+        return url, rel
+    try:
+        r = session.get(url, timeout=TIMEOUT)
+        if r.status_code != 200 or len(r.content) < 100:
+            return url, None
+        dest.write_bytes(r.content)
+        return url, rel
+    except Exception:
+        return url, None
+
+
 def main() -> int:
     root = Path(__file__).resolve().parent.parent
     images_path = root / "site_bundle" / "images.json"
@@ -65,41 +82,35 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     image_map: dict[str, str] = {}
-    session = requests.Session()
-    session.headers.update(HEADERS)
+    thread_local = threading.local()
 
-    n_skip = n_ok = n_fail = 0
-    for i, url in enumerate(urls, 1):
-        fname = safe_filename(url)
-        dest = out_dir / fname
-        rel = f"images/{fname}"
-        if dest.exists() and dest.stat().st_size > 0:
-            image_map[url] = rel
-            n_skip += 1
-            continue
-        try:
-            r = session.get(url, timeout=TIMEOUT)
-            if r.status_code != 200 or len(r.content) < 100:
-                print(f"[fail {i:4d}/{len(urls)}] {url} HTTP {r.status_code}", file=sys.stderr)
+    def get_session():
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+            thread_local.session.headers.update(HEADERS)
+        return thread_local.session
+
+    def worker(url: str):
+        return download_one(url, out_dir, get_session())
+
+    print(f"Starting concurrent download of {len(urls)} images...")
+    n_ok = n_fail = 0
+
+    with ThreadPoolExecutor(max_workers=32) as executor:
+        results = executor.map(worker, urls)
+        for idx, (url, rel) in enumerate(results, 1):
+            if rel:
+                image_map[url] = rel
+                n_ok += 1
+            else:
                 n_fail += 1
-                continue
-            dest.write_bytes(r.content)
-            image_map[url] = rel
-            n_ok += 1
-            if n_ok % 25 == 0:
-                print(f"[ok   {i:4d}/{len(urls)}] downloaded {n_ok}, skipped {n_skip}, failed {n_fail}")
-        except requests.RequestException as e:
-            print(f"[fail {i:4d}/{len(urls)}] {url}: {e}", file=sys.stderr)
-            n_fail += 1
-        time.sleep(DELAY_SEC)
+            if idx % 100 == 0 or idx == len(urls):
+                print(f"Progress: {idx}/{len(urls)} processed...")
 
     (root / "site_bundle" / "image_map.json").write_text(
         json.dumps(image_map, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print(
-        f"\nDone. downloaded={n_ok} skipped={n_skip} failed={n_fail} "
-        f"({len(image_map)} mapped). Wrote site_bundle/image_map.json"
-    )
+    print(f"\nDone. Wrote site_bundle/image_map.json with {len(image_map)} entries (success={n_ok}, fail={n_fail}).")
     return 0
 
 
