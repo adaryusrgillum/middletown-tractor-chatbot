@@ -136,52 +136,105 @@ def head(title: str, depth: int) -> str:
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>{H(title)}</title>
+  <script>
+    (function(){{
+      try {{
+        var s = localStorage.getItem('mt-theme');
+        var t = s || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', t);
+      }} catch(e) {{
+        document.documentElement.setAttribute('data-theme', 'light');
+      }}
+    }})();
+  </script>
   <link rel="stylesheet" href="{prefix}assets/site.css">
   <link rel="stylesheet" href="{prefix}assets/widget.css">
   <link rel="manifest" href="{prefix}manifest.json">
-  <meta name="theme-color" content="#0a0e0c">
-  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0e0c" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" href="{prefix}assets/icon-192.png" type="image/png">
+  <script src="{prefix}assets/theme.js" defer></script>
 </head>"""
 
 
 def topbar(depth: int) -> str:
     prefix = "../" if depth else ""
     return f"""<header class="topbar">
+  <span class="jd-mark" aria-label="John Deere">
+    <svg viewBox="0 0 70 50" width="42" height="30" fill="currentColor" aria-hidden="true">
+      <path d="M11 38c-2-7 1-14 6-19 5-4 11-5 17-4 1 0 1 1 0 1-5 1-9 4-13 8-3 4-5 9-4 14 1 4 4 7 8 7 1 0 1 1 0 1-6 1-12-2-14-8zm22-26c-7 0-13 5-15 12 0 1 1 1 1 0 3-4 8-7 13-7s9 2 11 6c0 1 1 1 1 0 0-7-5-11-11-11zm15 16c-2-6-8-10-15-10-1 0-1 1 0 1 6 1 11 4 13 10 1 5-1 10-5 13 0 1 0 1 1 1 5-3 8-9 6-15z"/>
+    </svg>
+  </span>
+  <span class="topbar-divider" aria-hidden="true"></span>
   <a class="brand" href="{prefix}index.html" aria-label="Middletown Tractor Sales home">
-    <span class="brand-mark" aria-hidden="true">MT</span>
+    <span class="brand-mark" aria-hidden="true">MTS</span>
     <span class="brand-text">
-      <strong>Middletown Tractor</strong>
-      <small>John Deere &middot; STIHL &middot; Honda &middot; Ventrac</small>
+      <strong>Middletown</strong>
+      <small>Tractor Sales</small>
     </span>
   </a>
   <nav class="topnav">
-    <button class="chat-btn" type="button" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Open chatbot">Ask</button>
+    <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+      <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+    <button class="icon-btn" type="button" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Search / ask chatbot" title="Ask">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
+      </svg>
+    </button>
   </nav>
 </header>"""
 
 
 def bottom_nav(depth: int, active: str = "home") -> str:
-    """`active` ∈ {'home', 'inventory', 'locations', 'chat'}."""
+    """`active` ∈ {'home', 'inventory', 'specials', 'parts', 'more'}."""
     prefix = "../" if depth else ""
     def cls(name: str) -> str:
         return ' class="active"' if active == name else ""
+
+    icon_home = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                 '<path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>')
+    icon_inv = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>'
+                '<rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>')
+    icon_spec = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                 '<path d="M20.59 13.41 11 22.83l-9-9V3h10.83l9 9.41a2 2 0 0 1 0 1Z"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/></svg>')
+    icon_parts = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                  'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+                  '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>')
+    icon_more = ('<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+                 '<circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>')
+
     return f"""<nav class="nav-bottom" aria-label="Primary">
   <a href="{prefix}index.html"{cls("home")}>
-    <span class="nav-icon" aria-hidden="true">⌂</span>
+    <span class="nav-icon">{icon_home}</span>
     <span>Home</span>
   </a>
   <a href="{prefix}pages/all-inventory.html"{cls("inventory")}>
-    <span class="nav-icon" aria-hidden="true">▦</span>
+    <span class="nav-icon">{icon_inv}</span>
     <span>Inventory</span>
   </a>
-  <a href="{prefix}index.html#locations"{cls("locations")}>
-    <span class="nav-icon" aria-hidden="true">◉</span>
-    <span>Locations</span>
+  <a href="{prefix}index.html#specials"{cls("specials")}>
+    <span class="nav-icon">{icon_spec}</span>
+    <span>Specials</span>
   </a>
-  <button type="button" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Open chatbot">
-    <span class="nav-icon" aria-hidden="true">✦</span>
-    <span>Chat</span>
+  <a href="{prefix}index.html#parts"{cls("parts")}>
+    <span class="nav-icon">{icon_parts}</span>
+    <span>Parts</span>
+  </a>
+  <button type="button" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Open chatbot"{(' class="active"' if active == "more" else "")}>
+    <span class="nav-icon">{icon_more}</span>
+    <span>More</span>
   </button>
 </nav>"""
 
@@ -448,51 +501,161 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
         for l in LOCATIONS
     )
 
+    # Pick a hero image from the John Deere featured set for the promo banners,
+    # falling back to a brand-themed gradient if none are available locally.
+    def first_thumb(brand_name: str) -> str | None:
+        for prod in brands_pages.get(brand_name, []):
+            t = page_thumb(prod, image_map)
+            if t:
+                return t
+        return None
+
+    brands_pages: dict[str, list[dict]] = {}
+    for p in featured:
+        brands_pages.setdefault(brand_of(p) or "Other", []).append(p)
+
+    jd_thumb = first_thumb("John Deere")
+    stihl_thumb = first_thumb("STIHL")
+    other_thumb = first_thumb("Ventrac") or first_thumb("Honda Power") or first_thumb("Other")
+
+    def card_bg(thumb: str | None) -> str:
+        if thumb:
+            return f'<span class="bg" style="background-image:url(\'{H(thumb)}\')"></span>'
+        return '<span class="bg-fallback"></span>'
+
     return f"""{head("Middletown Tractor Sales - WV & PA", depth=0)}
 <body>
 {topbar(depth=0)}
 
-<section class="hero">
-  <div class="hero-inner">
-    <span class="hero-badge">Serving WV &amp; PA since 1955</span>
-    <h1>Equipment for the way <span class="accent">you work.</span></h1>
-    <p class="lede">John Deere &middot; STIHL &middot; Honda Power &middot; Ventrac. Four locations across West Virginia and Pennsylvania.</p>
-    <div class="hero-cta">
-      <a class="btn btn-primary btn-lg" href="#brands">Browse inventory</a>
-      <a class="btn btn-ghost btn-lg" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;">Ask the chatbot</a>
-    </div>
-  </div>
-</section>
-
 <main class="home">
 
+  <!-- Featured promotional banner -->
+  <section class="promo-hero" aria-label="Featured promotion">
+    <div class="promo-hero-img">
+      <span class="promo-hero-overlay"></span>
+    </div>
+    <div class="promo-hero-body">
+      <h2>MEMORIAL DAY<br>WEEKEND</h2>
+      <p class="sub">Special Store Hours</p>
+      <span class="row">Saturday &mdash; 8:30 AM &ndash; 1:00 PM</span>
+      <span class="row">Monday &mdash; CLOSED</span>
+    </div>
+    <div class="promo-dots" aria-hidden="true">
+      <span class="dot on"></span><span class="dot"></span>
+    </div>
+  </section>
+
+  <!-- Two side-by-side promo cards -->
+  <section class="promo-duo">
+    <a class="promo-card" href="pages/brand-john-deere.html" aria-label="Riding lawn equipment">
+      {card_bg(jd_thumb)}
+      <div class="inner">
+        <span class="kicker">Riding Lawn<br>Equipment</span>
+        <span class="price">$59<span style="font-size:13px;font-weight:700;color:#fff;">/mo</span></span>
+        <span class="note">From $59 per month</span>
+      </div>
+    </a>
+    <a class="promo-card" href="pages/brand-john-deere.html" aria-label="Tractor Package">
+      {card_bg(other_thumb or jd_thumb)}
+      <div class="inner">
+        <span class="kicker">THE TLB<br>PACKAGE</span>
+        <span class="price">0%</span>
+        <span class="note">for 84 months on select Compact Tractors</span>
+      </div>
+    </a>
+  </section>
+
+  <!-- Wide STIHL-style promo banner -->
+  <a class="promo-wide" href="pages/brand-stihl.html" aria-label="STIHL savings">
+    {card_bg(stihl_thumb)}
+    <span class="label">SAVE $30</span>
+    <span class="small">On Select STIHL</span>
+  </a>
+
+  <!-- 3-up category strip: NEW EQUIP / USED EQUIP / SPECIALS -->
+  <section class="cat-strip" id="specials">
+    <a class="cat-card" href="pages/all-inventory.html" aria-label="New equipment">
+      {card_bg(jd_thumb)}
+      <div class="inner">
+        <span class="cat-title">New Equip</span>
+        <span class="cat-cta">View Inventory ›</span>
+      </div>
+    </a>
+    <a class="cat-card" href="pages/all-inventory.html" aria-label="Used equipment">
+      {card_bg(other_thumb)}
+      <div class="inner">
+        <span class="cat-title">Used Equip</span>
+        <span class="cat-cta">View Inventory ›</span>
+      </div>
+    </a>
+    <a class="cat-card" href="pages/all-inventory.html" aria-label="Specials">
+      {card_bg(stihl_thumb)}
+      <div class="inner">
+        <span class="cat-title">Specials</span>
+        <span class="cat-cta">See More ›</span>
+      </div>
+    </a>
+  </section>
+
+  <!-- 2-up: Parts / Service -->
+  <section class="cat-strip duo" id="parts">
+    <a class="cat-card" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Parts">
+      {card_bg(jd_thumb)}
+      <div class="inner">
+        <span class="cat-title">Parts</span>
+        <span class="cat-cta">Learn More ›</span>
+      </div>
+    </a>
+    <a class="cat-card" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;" aria-label="Service">
+      {card_bg(other_thumb)}
+      <div class="inner">
+        <span class="cat-title">Service</span>
+        <span class="cat-cta">Learn More ›</span>
+      </div>
+    </a>
+  </section>
+
+  <!-- Shop by brands -->
+  <section class="brands-row" id="brands">
+    <h3 class="brands-row-title">Shop by Brands</h3>
+    <div class="brands-tiles">
+      <a class="brand-tile" href="pages/brand-john-deere.html"><span class="brand-tile-name"><span class="jd">John Deere</span></span></a>
+      <a class="brand-tile" href="pages/brand-stihl.html"><span class="brand-tile-name"><span class="stihl">STIHL</span></span></a>
+      <a class="brand-tile" href="pages/brand-other-inventory.html"><span class="brand-tile-name"><span class="frontier">Frontier</span><small class="brand-tile-sub">Rugged. Reliable.</small></span></a>
+    </div>
+  </section>
+
+  <!-- Locations -->
   <section class="locations-section" id="locations">
     <div class="section-head">
-      <h2>Our locations</h2>
-      <p class="muted">Tap a location to call. Same crew, same quality across all four stores.</p>
+      <h2>Our Locations</h2>
+      <p class="muted">Tap to call any of our four WV &amp; PA stores.</p>
     </div>
     <div class="locations-strip">{loc_summary}</div>
   </section>
 
-  <section class="brands" id="brands">
+  <!-- Featured inventory cards -->
+  <section class="featured">
     <div class="section-head">
-      <h2>Browse by brand</h2>
+      <h2>Featured Inventory</h2>
+      <p class="muted">A taste of what we carry. <a href="pages/all-inventory.html">See all units &rarr;</a></p>
+    </div>
+    <div class="card-grid">{featured_html}</div>
+  </section>
+
+  <!-- Browse all brands grid -->
+  <section class="brands">
+    <div class="section-head">
+      <h2>Browse by Brand</h2>
       <p class="muted">Pick a brand to see every unit we carry.</p>
     </div>
     <div class="card-grid">{brand_html}</div>
   </section>
 
-  <section class="featured">
-    <div class="section-head">
-      <h2>Featured inventory</h2>
-      <p class="muted">A taste of what we have. <a href="pages/all-inventory.html">See all units &rarr;</a></p>
-    </div>
-    <div class="card-grid">{featured_html}</div>
-  </section>
-
+  <!-- Service / about info -->
   <section class="info">
     <div class="section-head">
-      <h2>Service, parts &amp; about us</h2>
+      <h2>Service, Parts &amp; About</h2>
     </div>
     <div class="info-links">{info_links}</div>
   </section>
@@ -509,43 +672,98 @@ def render_index(featured: list[dict], brands: list[tuple[str, int, str | None]]
 # ---------- CSS ----------
 
 SITE_CSS = """:root {
-  /* Dark palette - One UI 7 inspired */
-  --bg: #0a0e0c;
-  --bg-elev: #11171a;
-  --surface: #161e1c;
-  --surface-2: #1f2a26;
-  --surface-3: #2a3833;
-
-  --primary: #52c168;
-  --primary-dark: #2f7a3a;
-  --primary-glow: rgba(82, 193, 104, 0.28);
-  --accent: #f5c84f;
-
-  --text: #ecf2ee;
-  --text-strong: #ffffff;
-  --text-muted: #8b988f;
-  --text-dim: #6b7670;
-
-  --border: rgba(255, 255, 255, 0.06);
-  --border-strong: rgba(255, 255, 255, 0.14);
-
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 4px 20px var(--primary-glow);
+  /* Brand constants - matched to middletowntractor.com (John Deere palette) */
+  --primary: #367C2B;             /* John Deere green */
+  --primary-dark: #1f5527;
+  --jd-yellow: #FFDE00;           /* John Deere yellow - the iconic accent */
+  --jd-yellow-bright: #FFE63D;
+  --jd-yellow-dark: #E5C700;
+  --brand-red: #d92024;           /* Promo / sale urgency */
+  --on-primary: #ffffff;
 
   --radius-sm: 10px;
   --radius: 16px;
   --radius-lg: 22px;
-
   --topbar-h: 56px;
   --nav-h: 64px;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-elev: #f7f7f4;
+  --surface: #ffffff;
+  --surface-2: #f4f5f1;
+  --surface-3: #e9ebe5;
+
+  --text: #1a1f1c;
+  --text-strong: #0a0e0c;
+  --text-muted: #6b7670;
+  --text-dim: #8a948c;
+
+  --border: #e1e5e1;
+  --border-strong: #c4cbc6;
+
+  --topbar-bg: rgba(0, 0, 0, 1);          /* Top bar stays black even in light mode (matches website branding) */
+  --topbar-on: #ffffff;
+  --topbar-muted: rgba(255, 255, 255, 0.65);
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --nav-bg-solid: #ffffff;
+  --nav-border: #e1e5e1;
+  --nav-fg: #6b7670;
+  --nav-fg-active: var(--primary);
+
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 6px 22px rgba(47, 122, 58, 0.22);
+
+  /* Accent on light: keep brand green for readability on white */
+  --accent: var(--primary);
+  --card-empty-1: #eef2ed;
+  --card-empty-2: #e1e8e1;
+  --ink-on-yellow: #0a0e0c;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #000000;                          /* Pure black, matches the screenshot */
+  --bg-elev: #0a0e0c;
+  --surface: #0d1311;
+  --surface-2: #141c19;
+  --surface-3: #1c2723;
+
+  --text: #ecf2ee;
+  --text-strong: #ffffff;
+  --text-muted: #98a59c;
+  --text-dim: #6b7670;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  --topbar-bg: #000000;
+  --topbar-on: #ffffff;
+  --topbar-muted: rgba(255, 255, 255, 0.55);
+  --nav-bg: rgba(0, 0, 0, 0.92);
+  --nav-bg-solid: #000000;
+  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-fg: #98a59c;
+  --nav-fg-active: var(--jd-yellow);
+
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 6px 26px rgba(255, 222, 0, 0.18);
+
+  /* Accent on dark: John Deere yellow (matches screenshot) */
+  --accent: var(--jd-yellow);
+  --card-empty-1: #0f1714;
+  --card-empty-2: #060a08;
+  --ink-on-yellow: #0a0e0c;
 }
 
 * { box-sizing: border-box; min-width: 0; }
 
 html {
   background: var(--bg);
-  color-scheme: dark;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -561,11 +779,7 @@ html, body {
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Samsung One UI", Roboto, Helvetica, Arial, sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(1200px 600px at 50% -240px, rgba(82, 193, 104, 0.08), transparent 70%),
-    radial-gradient(800px 400px at 100% 200px, rgba(82, 193, 104, 0.04), transparent 60%),
-    var(--bg);
-  background-attachment: fixed;
+  background: var(--bg);
   line-height: 1.5;
   font-size: 15px;
   -webkit-text-size-adjust: 100%;
@@ -573,102 +787,413 @@ body {
   padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
 }
 
-a { color: var(--primary); text-decoration: none; }
+a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 img { max-width: 100%; height: auto; display: block; }
 h1, h2, h3, h4 { color: var(--text-strong); overflow-wrap: anywhere; letter-spacing: -0.01em; }
 p, li, .card-title, .card-meta, .card-brand { overflow-wrap: anywhere; word-wrap: break-word; }
 
-/* ---------- Topbar ---------- */
+/* ---------- Topbar (always-black like the screenshot) ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(10, 14, 12, 0.72);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  border-bottom: 1px solid var(--border);
+  background: var(--topbar-bg);
+  color: var(--topbar-on);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: max(10px, env(safe-area-inset-top)) 16px 10px;
+  gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) 12px 10px;
   min-height: var(--topbar-h);
 }
-.brand { display: flex; align-items: center; gap: 12px; color: var(--text-strong); min-width: 0; flex: 1 1 auto; }
+.topbar .jd-mark {
+  flex: 0 0 auto;
+  height: 28px; width: auto;
+  display: flex; align-items: center;
+  color: var(--primary);
+}
+.topbar .jd-mark svg { display: block; }
+.topbar-divider {
+  width: 1px; height: 28px;
+  background: rgba(255, 255, 255, 0.16);
+  margin: 0 4px;
+  flex: 0 0 auto;
+}
+.brand { display: flex; align-items: center; gap: 10px; color: var(--topbar-on); min-width: 0; flex: 1 1 auto; text-decoration: none; }
+.brand:hover { text-decoration: none; }
 .brand-mark {
   flex: 0 0 auto;
-  width: 38px; height: 38px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: #061008;
-  border-radius: 12px;
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--jd-yellow) 0%, var(--primary) 100%);
+  color: #0a0e0c;
+  border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 900; font-size: 13px;
+  font-weight: 900; font-size: 12px;
   letter-spacing: 0.04em;
-  box-shadow: var(--shadow-glow);
 }
-.brand-text { min-width: 0; }
-.brand-text strong { display: block; line-height: 1.15; font-size: 15px; font-weight: 700; color: var(--text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.brand-text small { display: block; color: var(--text-muted); font-size: 11px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.topnav { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
-.topnav a, .topnav button {
+.brand-text { min-width: 0; line-height: 1.05; }
+.brand-text strong { display: block; font-size: 14px; font-weight: 800; color: var(--topbar-on); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0.02em; }
+.brand-text small { display: block; color: var(--topbar-muted); font-size: 9.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topnav { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
+.icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 600; color: var(--text);
+  width: 38px; height: 38px;
   background: transparent; border: none;
-  padding: 9px 14px; border-radius: 10px;
+  color: var(--topbar-on);
+  border-radius: 10px;
+  cursor: pointer; font-family: inherit;
+  position: relative;
+}
+.icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.icon-btn.cart-btn { color: var(--jd-yellow); }
+.cart-badge {
+  position: absolute;
+  top: 4px; right: 4px;
+  min-width: 16px; height: 16px;
+  background: var(--brand-red);
+  color: #fff;
+  font-size: 10px; font-weight: 800;
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px var(--topbar-bg);
+}
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  background: transparent; border: none;
+  color: var(--topbar-on);
+  border-radius: 10px;
   cursor: pointer; font-family: inherit;
 }
-.topnav a:hover, .topnav button:hover { background: var(--surface); text-decoration: none; color: var(--text-strong); }
-.topnav .chat-btn {
-  background: linear-gradient(135deg, var(--primary) 0%, #45a356 100%);
-  color: #061008; font-weight: 800;
-  box-shadow: var(--shadow-glow);
+.theme-toggle:hover { background: rgba(255, 255, 255, 0.08); }
+.theme-toggle .icon-sun { display: none; }
+.theme-toggle .icon-moon { display: block; }
+[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+.chat-btn {
+  background: var(--jd-yellow);
+  color: var(--ink-on-yellow);
+  border: none;
+  padding: 9px 14px; border-radius: 10px;
+  font-family: inherit; font-weight: 800; font-size: 13px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  cursor: pointer;
 }
-.topnav .chat-btn:hover { filter: brightness(1.08); background: linear-gradient(135deg, var(--primary) 0%, #45a356 100%); }
+.chat-btn:hover { background: var(--jd-yellow-bright); }
 
-/* ---------- Hero ---------- */
-.hero {
+/* ---------- Hero promo banner (Memorial-Day-style featured card) ---------- */
+.home { max-width: 1100px; margin: 0 auto; padding: 14px clamp(10px, 3vw, 18px) 24px; }
+
+.promo-hero {
   position: relative;
+  border-radius: var(--radius);
   overflow: hidden;
-  padding: clamp(36px, 9vw, 64px) clamp(16px, 4vw, 24px) clamp(32px, 8vw, 52px);
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(82, 193, 104, 0.18), transparent 60%),
-    linear-gradient(180deg, var(--bg-elev) 0%, var(--bg) 100%);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  margin-bottom: 12px;
 }
-.hero::before {
+.promo-hero-img {
+  width: 100%; aspect-ratio: 16/10;
+  background: linear-gradient(180deg, #1c4f8c 0%, #c41e3a 100%);
+  display: block;
+  position: relative;
+}
+.promo-hero-img::before {
+  /* Flag-like striping effect when no real image is available */
   content: "";
   position: absolute; inset: 0;
   background-image:
-    radial-gradient(circle at 20% 30%, rgba(82, 193, 104, 0.08) 0, transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(245, 200, 79, 0.05) 0, transparent 35%);
+    repeating-linear-gradient(180deg, transparent 0, transparent 22px, rgba(255,255,255,0.08) 22px, rgba(255,255,255,0.08) 24px);
   pointer-events: none;
 }
-.hero-inner { position: relative; max-width: 1000px; margin: 0 auto; z-index: 1; }
-.hero-badge {
-  display: inline-block;
-  font-size: 11.5px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--primary);
-  background: rgba(82, 193, 104, 0.1);
-  border: 1px solid rgba(82, 193, 104, 0.25);
-  padding: 6px 12px; border-radius: 999px;
-  margin-bottom: 16px;
+.promo-hero-img img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
+  position: relative;
+  z-index: 1;
 }
-.hero h1 {
-  font-size: clamp(28px, 7.5vw, 46px);
-  margin: 0 0 14px;
-  color: var(--text-strong);
-  line-height: 1.04;
+.promo-hero-body {
+  background: #ffffff;
+  color: #0a0e0c;
+  padding: 18px 16px 22px;
+  text-align: center;
+}
+.promo-hero-body h2 {
+  margin: 0;
+  font-size: clamp(22px, 6.5vw, 36px);
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: #1c4f8c;
+}
+.promo-hero-body .sub {
+  margin: 10px 0 0;
+  font-size: clamp(12px, 3vw, 14px);
+  letter-spacing: 0.32em;
+  font-weight: 700;
+  color: #1a1f1c;
+  text-transform: uppercase;
+}
+.promo-hero-body .row {
+  display: block;
+  margin-top: 14px;
+  font-size: clamp(13px, 3.4vw, 15px);
+  font-weight: 700;
+  color: var(--brand-red);
+  letter-spacing: 0.02em;
+}
+.promo-dots {
+  display: flex; gap: 6px; justify-content: center;
+  padding: 10px 0;
+  background: #ffffff;
+}
+.promo-dots .dot { width: 6px; height: 6px; border-radius: 50%; background: #c4cbc6; }
+.promo-dots .dot.on { background: var(--primary); }
+
+/* ---------- Duo promo (two cards side by side) ---------- */
+.promo-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.promo-card {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  aspect-ratio: 1/1;
+  display: flex; align-items: flex-end;
+  color: #fff;
+  text-decoration: none;
+}
+.promo-card .bg, .promo-card .bg-fallback {
+  position: absolute; inset: 0;
+  background-color: #0d1311;
+  background-image: linear-gradient(135deg, #2c4521 0%, #0d1311 100%);
+  background-position: center; background-size: cover; background-repeat: no-repeat;
+  z-index: 0;
+}
+/* When a real image URL is supplied via inline style, it overlays the fallback gradient */
+.promo-card .bg[style*="url("] {
+  background-image: var(--bg-img, none), linear-gradient(135deg, #2c4521 0%, #0d1311 100%);
+}
+.promo-card::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 35%, rgba(0,0,0,0.6) 100%);
+  z-index: 1;
+  pointer-events: none;
+}
+.promo-card .inner {
+  position: relative; z-index: 2;
+  padding: 12px 14px 14px;
+  width: 100%;
+}
+.promo-card .kicker {
+  display: block;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--jd-yellow);
+  line-height: 1.05;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  letter-spacing: 0.01em;
+}
+.promo-card .price {
+  display: block;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--jd-yellow);
+  margin-top: 4px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.promo-card .note {
+  display: block; margin-top: 4px;
+  font-size: 11.5px; font-weight: 600; color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.55);
+}
+
+/* Wide promo banner (STIHL Save $30 style) */
+.promo-wide {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #e8580f;
+  aspect-ratio: 16/7;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  color: #fff;
+}
+.promo-wide .bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0.55;
+}
+.promo-wide .label {
+  position: relative;
+  font-size: clamp(28px, 9vw, 48px);
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.55);
+  z-index: 1;
+}
+.promo-wide .small {
+  position: relative; z-index: 1;
+  margin-left: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.95;
+}
+
+/* ---------- Category strip (NEW EQUIP / USED EQUIP / SPECIALS) ---------- */
+.cat-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cat-strip.duo { grid-template-columns: 1fr 1fr; }
+
+.cat-card {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  aspect-ratio: 5/4;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex; align-items: flex-end;
+  text-decoration: none;
+  color: #fff;
+}
+.cat-card .bg, .cat-card .bg-fallback {
+  position: absolute; inset: 0;
+  background-color: #0d1311;
+  background-image: linear-gradient(135deg, #0d1311 0%, #2c4521 100%);
+  background-position: center; background-size: cover; background-repeat: no-repeat;
+  z-index: 0;
+}
+.promo-wide .bg, .promo-wide .bg-fallback {
+  position: absolute; inset: 0;
+  background-color: #e8580f;
+  background-position: center; background-size: cover; background-repeat: no-repeat;
+  z-index: 0;
+  opacity: 0.55;
+}
+.cat-card::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.7) 100%);
+  z-index: 1;
+}
+.cat-card .inner {
+  position: relative; z-index: 2;
+  padding: 10px 12px 12px;
+  width: 100%;
+}
+.cat-card .cat-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--jd-yellow);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+}
+.cat-card .cat-cta {
+  display: block; margin-top: 2px;
+  font-size: 11.5px; font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+}
+
+/* ---------- Brands strip ---------- */
+.brands-row {
+  margin: 12px 0;
+}
+.brands-row-title {
+  text-align: center;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: -0.025em;
-  overflow-wrap: anywhere;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-strong);
+  margin: 18px 0 12px;
 }
-.hero h1 .accent {
-  background: linear-gradient(120deg, var(--primary) 0%, var(--accent) 100%);
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent;
+.brands-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
-.hero .lede { font-size: clamp(15px, 3.6vw, 17px); color: var(--text-muted); margin: 0 0 24px; max-width: 540px; line-height: 1.55; }
-.hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.brand-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  aspect-ratio: 16/8;
+  display: flex; align-items: center; justify-content: center;
+  text-decoration: none;
+  color: var(--text-strong);
+  padding: 8px;
+  text-align: center;
+}
+.brand-tile:hover { border-color: var(--accent); text-decoration: none; }
+.brand-tile-name {
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.brand-tile-name .jd { color: var(--primary); }
+.brand-tile-name .stihl { color: #f76707; }
+.brand-tile-name .ventrac { color: var(--jd-yellow); }
+.brand-tile-name .honda { color: var(--brand-red); }
+.brand-tile-name .frontier { color: var(--text-strong); font-size: 11.5px; }
+.brand-tile-name .other { color: var(--text-muted); font-size: 11.5px; }
+.brand-tile-sub { display: block; font-size: 9.5px; font-weight: 600; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.04em; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  min-height: 44px;
+  line-height: 1.2;
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+}
+.btn:hover { text-decoration: none; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary {
+  background: var(--jd-yellow);
+  color: var(--ink-on-yellow);
+  box-shadow: var(--shadow-glow);
+}
+.btn-primary:hover { background: var(--jd-yellow-bright); }
+.btn-secondary { background: var(--surface-2); color: var(--text-strong); border-color: var(--border-strong); }
+.btn-secondary:hover { background: var(--surface-3); }
+.btn-ghost { background: transparent; color: var(--text-strong); border-color: var(--border-strong); }
+.btn-ghost:hover { background: var(--surface); }
+.btn-lg { padding: 14px 22px; font-size: 14px; min-height: 50px; }
+
+/* ---------- Sections ---------- */
+section { margin: clamp(20px, 4vw, 32px) 0; }
+.section-head { margin-bottom: 14px; }
+.section-head h2 { margin: 0 0 4px; font-size: clamp(18px, 4.4vw, 22px); color: var(--text-strong); font-weight: 800; letter-spacing: -0.01em; }
+.section-head .muted { color: var(--text-muted); margin: 0; font-size: 13.5px; }
+.section-head .muted a { color: var(--accent); font-weight: 700; }
+.muted { color: var(--text-muted); }
 
 /* ---------- Locations strip ---------- */
 .locations-strip {
@@ -688,49 +1213,9 @@ p, li, .card-title, .card-meta, .card-brand { overflow-wrap: anywhere; word-wrap
   color: var(--text);
   display: block;
 }
-.loc-pill:hover { border-color: var(--primary); transform: translateY(-1px); text-decoration: none; }
-.loc-pill strong { display: block; color: var(--text-strong); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.loc-pill small { color: var(--text-muted); display: block; margin-top: 2px; }
-
-/* ---------- Buttons ---------- */
-.btn {
-  display: inline-flex;
-  align-items: center; justify-content: center;
-  gap: 6px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 14px;
-  text-decoration: none;
-  border: 1px solid transparent;
-  cursor: pointer;
-  min-height: 44px;
-  line-height: 1.2;
-  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
-  font-family: inherit;
-}
-.btn:hover { text-decoration: none; transform: translateY(-1px); }
-.btn:active { transform: translateY(0); }
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary) 0%, #45a356 100%);
-  color: #061008;
-  box-shadow: var(--shadow-glow);
-}
-.btn-primary:hover { box-shadow: 0 6px 24px var(--primary-glow), 0 2px 8px rgba(0,0,0,0.4); }
-.btn-secondary { background: var(--surface-2); color: var(--text-strong); border-color: var(--border-strong); }
-.btn-secondary:hover { background: var(--surface-3); }
-.btn-ghost { background: rgba(255,255,255,0.04); color: var(--text-strong); border-color: var(--border-strong); }
-.btn-ghost:hover { background: rgba(255,255,255,0.08); }
-.btn-lg { padding: 14px 24px; font-size: 15px; min-height: 50px; }
-
-/* ---------- Main / sections ---------- */
-.home { max-width: 1100px; margin: 0 auto; padding: 0 clamp(12px, 3vw, 20px) 40px; }
-section { margin: clamp(28px, 6vw, 44px) 0; }
-.section-head { margin-bottom: 16px; }
-.section-head h2 { margin: 0 0 4px; font-size: clamp(20px, 4.8vw, 26px); color: var(--text-strong); font-weight: 700; letter-spacing: -0.01em; }
-.section-head .muted { color: var(--text-muted); margin: 0; font-size: 14px; }
-.section-head .muted a { color: var(--primary); font-weight: 600; }
-.muted { color: var(--text-muted); }
+.loc-pill:hover { border-color: var(--accent); transform: translateY(-1px); text-decoration: none; }
+.loc-pill strong { display: block; color: var(--text-strong); font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loc-pill small { color: var(--accent); display: block; margin-top: 2px; font-weight: 700; }
 
 /* ---------- Card grid ---------- */
 .card-grid {
@@ -755,14 +1240,14 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 }
 .card:hover, .card:focus-visible {
   transform: translateY(-3px);
-  border-color: rgba(82, 193, 104, 0.32);
+  border-color: var(--accent);
   box-shadow: var(--shadow-lg);
   text-decoration: none;
   outline: none;
 }
 .card-img {
   width: 100%; aspect-ratio: 4/3;
-  background: #1a2220;
+  background: var(--card-empty-1);
   overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   position: relative;
@@ -770,16 +1255,16 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 .card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
 .card:hover .card-img img { transform: scale(1.04); }
 .card-img-empty {
-  background: linear-gradient(135deg, #1c2723 0%, #0f1714 100%);
-  color: var(--primary);
+  background: linear-gradient(135deg, var(--card-empty-1) 0%, var(--card-empty-2) 100%);
+  color: var(--accent);
 }
 .card-img-fallback {
   font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
   text-transform: uppercase; text-align: center;
-  padding: 0 10px; color: var(--primary);
+  padding: 0 10px; color: var(--accent);
 }
 .card-body { padding: 12px 14px 14px; min-width: 0; }
-.card-brand { font-size: 10.5px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; }
+.card-brand { font-size: 10.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; }
 .card-title { font-weight: 700; font-size: 14px; margin-top: 4px; line-height: 1.3; color: var(--text-strong); }
 .card-meta { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
 
@@ -788,7 +1273,7 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 .brand-card .card-img::after {
   content: "";
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.55) 100%);
+  background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.65) 100%);
   pointer-events: none;
 }
 
@@ -810,13 +1295,13 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 .info-link::after {
   content: "›";
   margin-left: auto;
-  color: var(--primary);
+  color: var(--accent);
   font-size: 20px;
   line-height: 1;
 }
 .info-link:hover {
   background: var(--surface-2);
-  border-color: var(--primary);
+  border-color: var(--accent);
   text-decoration: none;
   transform: translateX(2px);
 }
@@ -837,7 +1322,7 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 @media (min-width: 768px) { .product-grid { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 32px; } }
 .product-hero {
   width: 100%; aspect-ratio: 4/3;
-  background: #1a2220;
+  background: var(--card-empty-1);
   border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
@@ -845,11 +1330,11 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 }
 .product-hero img { width: 100%; height: 100%; object-fit: cover; }
 .product-hero-empty {
-  background: linear-gradient(135deg, #1c2723 0%, #0f1714 100%);
+  background: linear-gradient(135deg, var(--card-empty-1) 0%, var(--card-empty-2) 100%);
   display: flex; align-items: center; justify-content: center;
 }
 .hero-fallback {
-  color: var(--primary);
+  color: var(--accent);
   font-weight: 800;
   font-size: clamp(15px, 3.4vw, 20px);
   text-align: center; padding: 0 16px;
@@ -864,9 +1349,9 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
-.thumb:hover, .thumb:focus-visible { border-color: var(--primary); outline: none; transform: translateY(-2px); }
+.thumb:hover, .thumb:focus-visible { border-color: var(--accent); outline: none; transform: translateY(-2px); }
 .product-info { min-width: 0; }
-.product-info .product-brand { font-size: 11.5px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; }
+.product-info .product-brand { font-size: 11.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; }
 .product-info h1 { margin: 6px 0 18px; font-size: clamp(22px, 5vw, 32px); color: var(--text-strong); font-weight: 800; line-height: 1.15; letter-spacing: -0.015em; }
 .product-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
 .product-body { min-width: 0; }
@@ -906,7 +1391,7 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 /* ---------- Listing page ---------- */
 .listing-page h1 { color: var(--text-strong); margin: 8px 0 6px; font-size: clamp(24px, 5.4vw, 34px); font-weight: 800; letter-spacing: -0.02em; }
 .listing-meta { color: var(--text-muted); margin: 0 0 20px; font-size: 14px; }
-.listing-meta a { color: var(--primary); font-weight: 600; }
+.listing-meta a { color: var(--accent); font-weight: 700; }
 .brand-section { margin: 36px 0; }
 .brand-section h2 {
   color: var(--text-strong); margin: 0 0 14px;
@@ -916,60 +1401,57 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 }
 .brand-section h2 .muted { font-weight: 500; font-size: 0.7em; }
 
-/* ---------- Bottom nav ---------- */
+/* ---------- Bottom nav (5 tabs, yellow active on dark / green active on light) ---------- */
 .nav-bottom {
   position: fixed; left: 0; right: 0; bottom: 0;
   z-index: 90;
   display: flex;
-  background: rgba(10, 14, 12, 0.88);
+  background: var(--nav-bg);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
-  border-top: 1px solid var(--border);
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--nav-border);
+  padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
 }
 .nav-bottom a, .nav-bottom button {
   flex: 1;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 3px;
-  padding: 6px 4px;
+  padding: 6px 2px;
   background: transparent; border: none;
-  color: var(--text-muted);
+  color: var(--nav-fg);
   font-family: inherit; font-size: 11px; font-weight: 600;
   cursor: pointer; text-decoration: none; text-align: center;
   min-height: 52px;
   border-radius: 12px;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease;
 }
-.nav-bottom a:hover, .nav-bottom button:hover { color: var(--text); text-decoration: none; }
-.nav-bottom a.active, .nav-bottom button.active { color: var(--primary); }
+.nav-bottom a:hover, .nav-bottom button:hover { color: var(--text-strong); text-decoration: none; }
+.nav-bottom a.active, .nav-bottom button.active { color: var(--nav-fg-active); }
 .nav-bottom .nav-icon {
-  width: 26px; height: 26px;
+  width: 24px; height: 24px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; line-height: 1;
+  line-height: 1;
 }
-.nav-bottom a.active .nav-icon,
-.nav-bottom button.active .nav-icon {
-  filter: drop-shadow(0 0 8px var(--primary-glow));
-}
+.nav-bottom .nav-icon svg { display: block; width: 22px; height: 22px; }
 
 /* ---------- Footer ---------- */
 .site-footer {
   background: var(--bg-elev);
   color: var(--text-muted);
-  padding: 36px clamp(16px, 4vw, 24px) 24px;
-  margin-top: 48px;
+  padding: 28px clamp(16px, 4vw, 24px) 20px;
+  margin-top: 28px;
   border-top: 1px solid var(--border);
 }
-.footer-cols { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 28px; }
-.footer-cols h4 { color: var(--text-strong); margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.footer-cols { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; }
+.footer-cols h4 { color: var(--text-strong); margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 800; }
 .footer-cols ul { list-style: none; padding: 0; margin: 0; }
-.footer-cols ul li { margin: 8px 0; font-size: 14px; line-height: 1.55; color: var(--text-muted); overflow-wrap: anywhere; }
+.footer-cols ul li { margin: 6px 0; font-size: 13.5px; line-height: 1.5; color: var(--text-muted); overflow-wrap: anywhere; }
 .footer-cols a { color: var(--text); }
-.footer-cols a:hover { color: var(--primary); }
-.footer-cols .loc-list li { margin-bottom: 14px; }
-.footer-cols .loc-list strong { color: var(--text-strong); font-weight: 700; }
-.footer-bottom { max-width: 1100px; margin: 28px auto 0; padding-top: 18px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+.footer-cols a:hover { color: var(--accent); }
+.footer-cols .loc-list li { margin-bottom: 12px; }
+.footer-cols .loc-list strong { color: var(--text-strong); font-weight: 800; }
+.footer-bottom { max-width: 1100px; margin: 22px auto 0; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
 
 /* ---------- Chat launcher: sit above the bottom nav ---------- */
 .mt-launcher {
@@ -979,17 +1461,11 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
 /* ---------- Very small screens ---------- */
 @media (max-width: 380px) {
   .brand-text small { display: none; }
-  .topnav a, .topnav button { padding: 8px 11px; font-size: 13px; }
+  .icon-btn, .theme-toggle { width: 34px; height: 34px; }
+  .chat-btn { padding: 8px 10px; font-size: 12px; }
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
   .nav-bottom a, .nav-bottom button { font-size: 10px; }
-  .nav-bottom .nav-icon { width: 22px; height: 22px; font-size: 18px; }
-  .hero { padding-left: 16px; padding-right: 16px; }
-}
-
-/* ---------- Tall narrow phones (S25 Ultra: ~19.5:9) ---------- */
-@media (min-aspect-ratio: 9/19) and (max-width: 480px) {
-  .hero { padding-top: clamp(40px, 11vw, 72px); padding-bottom: clamp(36px, 9vw, 56px); }
-  .hero h1 { font-size: clamp(30px, 8.2vw, 44px); }
+  .nav-bottom .nav-icon svg { width: 20px; height: 20px; }
 }
 
 /* ---------- Reduce motion ---------- */
@@ -999,6 +1475,43 @@ section { margin: clamp(28px, 6vw, 44px) 0; }
     transition-duration: 0.01ms !important;
   }
 }
+"""
+
+
+THEME_JS = """(function(){
+  'use strict';
+  var html = document.documentElement;
+  var META_LIGHT = '#ffffff';
+  var META_DARK  = '#0a0e0c';
+
+  function applyMetaThemeColor(theme){
+    // Replace the dual media-scoped meta tags with a single explicit tag so
+    // Android picks up the manually-toggled choice instead of the system one.
+    var head = document.head;
+    head.querySelectorAll('meta[name="theme-color"]').forEach(function(m){ m.remove(); });
+    var m = document.createElement('meta');
+    m.setAttribute('name', 'theme-color');
+    m.setAttribute('content', theme === 'dark' ? META_DARK : META_LIGHT);
+    head.appendChild(m);
+  }
+
+  function setTheme(theme){
+    html.setAttribute('data-theme', theme);
+    try { localStorage.setItem('mt-theme', theme); } catch(e) {}
+    applyMetaThemeColor(theme);
+  }
+
+  // Sync meta-color on initial load (the pre-paint script set data-theme).
+  applyMetaThemeColor(html.getAttribute('data-theme') || 'light');
+
+  // Wire up every theme toggle on the page.
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.theme-toggle');
+    if (!btn) return;
+    var current = html.getAttribute('data-theme') || 'light';
+    setTheme(current === 'dark' ? 'light' : 'dark');
+  });
+})();
 """
 
 
@@ -1109,6 +1622,7 @@ def main() -> int:
     shutil.copy(widget_src / "widget.css", ASSETS_DIR / "widget.css")
     shutil.copy(widget_src / "widget.js", ASSETS_DIR / "widget.js")
     (ASSETS_DIR / "site.css").write_text(SITE_CSS, encoding="utf-8")
+    (ASSETS_DIR / "theme.js").write_text(THEME_JS, encoding="utf-8")
 
     # ---- URL map: remote URL -> in-app relative path ----
     # Every scraped page we render locally is reachable; the widget uses this
