@@ -137,8 +137,16 @@ def load_retriever() -> Retriever:
 
 retriever = load_retriever()
 
-# Initialize local Kokoro TTS engine on startup
-local_tts = None
+# Initialize Local TTS Engine (F5-TTS preferred, Kokoro fallback)
+local_tts_f5 = None
+try:
+    from f5_tts.api import F5TTS
+    local_tts_f5 = F5TTS()  # Will download weights on first run if needed
+    print("[ok] Loaded F5-TTS maximum-realism model successfully!")
+except Exception as e:
+    print(f"[info] F5-TTS disabled or not found: {e}")
+
+local_tts_kokoro = None
 try:
     model_dir = ROOT / "backend" / "kokoro-en-v0_19"
     if model_dir.exists():
@@ -153,7 +161,7 @@ try:
                 num_threads=4,
             )
         )
-        local_tts = sherpa_onnx.OfflineTts(tts_config)
+        local_tts_kokoro = sherpa_onnx.OfflineTts(tts_config)
         print("[ok] Loaded local Kokoro TTS model successfully!")
     else:
         print("[warn] Local Kokoro TTS model directory not found.")
@@ -363,25 +371,75 @@ def stream_answer(req: ChatRequest) -> AsyncIterator[bytes]:
 
 class TTSRequest(BaseModel):
     text: str
+    voice: Optional[str] = None
+    # future: rate and pitch could be supported by the backend/model
+    rate: Optional[float] = Field(None, description="Relative speaking rate (1.0 = normal)")
+    pitch: Optional[float] = Field(None, description="Relative pitch (1.0 = normal)")
 
 
 @app.post("/api/tts")
 def generate_tts(req: TTSRequest):
-    if not local_tts:
-        raise HTTPException(503, "Local TTS model not loaded.")
+    if not (local_tts_f5 or local_tts_kokoro):
+        raise HTTPException(503, "No Local TTS model loaded.")
     try:
-        audio = local_tts.generate(req.text)
-        # Convert float samples in [-1.0, 1.0] to 16-bit PCM values
-        int_samples = [max(-32768, min(32767, int(s * 32767))) for s in audio.samples]
+        sr = 22050
+        import numpy as _np
         
-        wav_io = io.BytesIO()
-        with wave.open(wav_io, 'wb') as wav_file:
-            wav_file.setnchannels(1)  # Mono
-            wav_file.setsampwidth(2)   # 16-bit
-            wav_file.setframerate(audio.sample_rate)
-            a = array.array('h', int_samples)
-            wav_file.writeframes(a.tobytes())
+        if local_tts_f5:
+            # F5-TTS generation
+            # Returns (wav, sr). wav is a 1D numpy array float32.
+            # You can supply an optional ref_audio and ref_text in the backend for custom cloning.
+            wav, sr = local_tts_f5.infer(
+                ref_file="",   # Empty string uses default reference in F5
+                ref_text="",
+                gen_text=req.text,
+                speed=req.rate if req.rate else 1.0,
+            )
+            samples = _np.asarray(wav, dtype=_np.float32)
+        else:
+            # Kokoro generation
+            try:
+                audio = local_tts_kokoro.generate(req.text, voice=(req.voice or None))
+            except TypeError:
+                audio = local_tts_kokoro.generate(req.text)
             
+            samples = _np.asarray(audio.samples, dtype=_np.float32)
+            sr = int(getattr(audio, "sample_rate", getattr(audio, "sample_rate", 22050)))
+
+        try:
+            from scipy.signal import butter, filtfilt
+        except Exception:
+            butter = filtfilt = None
+
+        # Simple smoothing / low-pass to reduce high-frequency artifacts and make
+        # the voice sound slightly more natural. If scipy is available, apply
+        # a gentle 4th-order lowpass filter at 8kHz.
+        sr = int(getattr(audio, "sample_rate", audio.sample_rate if hasattr(audio, "sample_rate") else 22050))
+        if butter and samples.size > 1000:
+            try:
+                nyq = 0.5 * sr
+                cutoff = 8000.0
+                b, a = butter(4, cutoff / nyq, btype="low")
+                samples = filtfilt(b, a, samples)
+            except Exception:
+                pass
+
+        # Gentle normalization to avoid clipping
+        max_abs = float(_np.max(_np.abs(samples)) or 1.0)
+        if max_abs > 0:
+            samples = samples / max_abs * 0.95
+
+        # Convert to 16-bit PCM
+        int_samples = _np.clip((samples * 32767.0).astype(_np.int16), -32768, 32767)
+
+        wav_io = io.BytesIO()
+        with wave.open(wav_io, "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sr)
+            a = array.array("h", int_samples.tolist())
+            wav_file.writeframes(a.tobytes())
+
         return Response(content=wav_io.getvalue(), media_type="audio/wav")
     except Exception as e:
         raise HTTPException(500, f"TTS generation failed: {e}")
