@@ -329,14 +329,27 @@ def product_card(p: dict, image_map: dict[str, str], depth: int = 0) -> str:
 # Brand name (canonical, as used in URLs / cards) -> remote logo URL.
 # These are the scraped dealerspike / middletowntractor logos. Resolved to local
 # paths via image_map at render time.
+# Each value is the canonical URL the brand logo was scraped from. Resolved to
+# local image_map paths at render time so the site works offline.
+# Sources, in order of preference:
+#   - manufacturer's official site (best - high-res, transparent SVG/PNG)
+#   - dealerspike CDN (small thumbnails, only used when manufacturer source is
+#     unavailable or restricted)
 BRAND_LOGO_URLS: dict[str, str] = {
+    # JD: dealerspike thumb is the standard official signature mark
     "John Deere":        "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/John-Deere-logo.png",
-    "STIHL":             "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Stihl-logo.png",
-    "Ventrac":           "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Ventrac-logo.png",
-    "Honda Power":       "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Honda-Power-logo.png",
+    # STIHL: official SVG from stihlusa.com - vector, any resolution
+    "STIHL":             "https://www.stihlusa.com/content/experience-fragments/stihl/us/en/main_navigation/master/_jcr_content/root/mainnav/logo.coreimg.svg/1645463249762/stihl-logo.svg",
+    # Ventrac: 1920x768 PNG of the red-swoosh+blue-wordmark logo from venturepro.com
+    "Ventrac":           "https://cdn.venturepro.com/images/ventrac/logo/ventrac-color-outline.png",
+    # Honda: corporate H from Wikimedia Commons (SVG, scales)
+    "Honda Power":       "https://upload.wikimedia.org/wikipedia/commons/7/7b/Honda_Logo.svg",
+    # Frontier: still using the dealerspike 85x66 - manufacturer site unreachable
     "Frontier":          "https://cdn.dealerspike.com/imglib/InventoryPages/makes/Frontier-logo.png",
-    "Kuhn":              "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Kuhn-logo.png",
-    "Alamo Industrial":  "https://cdn.dealerspike.com/imglib/InventoryPages/Makes/Alamo-Industrial-logo.png",
+    # Kuhn: official SVG from kuhn.com
+    "Kuhn":              "https://www.kuhn.com/themes/custom/kuhn_group/images/kuhn_logotype.svg",
+    # Alamo: 3418x469 PNG from alamo-industrial.com
+    "Alamo Industrial":  "https://www.alamo-industrial.com/assets/images/general/logo-black.png",
 }
 
 # brand -> {"light": css color hint, "dark": css color hint} - used for the
