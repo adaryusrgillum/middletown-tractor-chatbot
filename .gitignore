@@ -47,3 +47,7 @@ backend/*.db-shm
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# --- Release signing (keystore must never be committed) ---
+android/release.keystore
+android/keystore.properties
