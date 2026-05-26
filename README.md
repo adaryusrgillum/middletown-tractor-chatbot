@@ -108,10 +108,24 @@ The chatbot widget works **fully offline** for the 10 suggestion chips (canned J
 
 ## Install the APK on a Samsung / Android phone
 
-1. Transfer `app-debug.apk` to the phone (USB, OneDrive, email, etc.)
-2. Open the file from Files / Downloads
-3. Grant "Install unknown apps" permission for that source when prompted
-4. Tap **Install**
+The latest pre-built APKs live in [`releases/`](./releases/). Browse to that
+folder or use a direct link:
+
+- **v5** (latest): https://github.com/adaryusrgillum/middletown-tractor-chatbot/raw/main/releases/middletown-tractor-v5.apk
+- **v4**: https://github.com/adaryusrgillum/middletown-tractor-chatbot/raw/main/releases/middletown-tractor-v4.apk
+
+Then on your phone:
+
+1. Open the direct link above (or transfer a built `app-debug.apk` over USB / OneDrive / email).
+2. Open the file from Files / Downloads.
+3. Grant "Install unknown apps" permission for that source when prompted.
+4. Tap **Install**.
+
+> **Why isn't there a GitHub Release?** The Releases tab is empty for v4/v5
+> because GitHub Actions is locked on this account due to a billing issue,
+> so the `release-apk.yml` workflow can't auto-publish. Clearing the billing
+> block at https://github.com/settings/billing and re-pushing `release-v5`
+> will populate the Releases tab automatically.
 
 ## Schedule Service form + push notifications
 
