@@ -346,8 +346,9 @@ BRAND_LOGO_URLS: dict[str, str] = {
     "Honda Power":       "https://upload.wikimedia.org/wikipedia/commons/7/7b/Honda_Logo.svg",
     # Frontier: still using the dealerspike 85x66 - manufacturer site unreachable
     "Frontier":          "https://cdn.dealerspike.com/imglib/InventoryPages/makes/Frontier-logo.png",
-    # Kuhn: official SVG from kuhn.com
-    "Kuhn":              "https://www.kuhn.com/themes/custom/kuhn_group/images/kuhn_logotype.svg",
+    # Kuhn: red-diamond + white wordmark from kuhncenter.ch (the recognizable
+    # brand mark, not just the kuhn.com header wordmark)
+    "Kuhn":              "https://www.kuhncenter.ch/content/miscellaneous/kuhn_logo.svg",
     # Alamo: 3418x469 PNG from alamo-industrial.com
     "Alamo Industrial":  "https://www.alamo-industrial.com/assets/images/general/logo-black.png",
 }
