@@ -208,6 +208,14 @@
 
   function sendCanned(item) {
     if (busy) return;
+    // Close the mobile keyboard and collapse the suggestion chips so the
+    // user can read the answer without the chip strip in the way.
+    textarea.blur();
+    if (!suggestionsCollapsed) {
+      suggestionsCollapsed = true;
+      localStorage.setItem(COLLAPSE_KEY, "1");
+      applySuggestionsCollapsed();
+    }
     appendUser(item.question);
     history.push({ role: "user", content: item.question });
     // Render the canned answer immediately - no LLM call.
@@ -217,7 +225,6 @@
       images: item.images || [],
     });
     history.push({ role: "assistant", content: item.answer });
-    textarea.focus();
   }
 
   // ---------- State ----------
