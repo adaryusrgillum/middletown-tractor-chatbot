@@ -19,9 +19,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import AsyncIterator, Optional
 
+import array
+import io
+import wave
 import requests
+import sherpa_onnx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -132,6 +136,29 @@ def load_retriever() -> Retriever:
 
 
 retriever = load_retriever()
+
+# Initialize local Kokoro TTS engine on startup
+local_tts = None
+try:
+    model_dir = ROOT / "backend" / "kokoro-en-v0_19"
+    if model_dir.exists():
+        tts_config = sherpa_onnx.OfflineTtsConfig(
+            model=sherpa_onnx.OfflineTtsModelConfig(
+                kokoro=sherpa_onnx.OfflineTtsKokoroModelConfig(
+                    model=str(model_dir / "model.onnx"),
+                    voices=str(model_dir / "voices.bin"),
+                    tokens=str(model_dir / "tokens.txt"),
+                    data_dir=str(model_dir / "espeak-ng-data"),
+                ),
+                num_threads=4,
+            )
+        )
+        local_tts = sherpa_onnx.OfflineTts(tts_config)
+        print("[ok] Loaded local Kokoro TTS model successfully!")
+    else:
+        print("[warn] Local Kokoro TTS model directory not found.")
+except Exception as e:
+    print(f"[warn] Failed to load local Kokoro TTS model: {e}")
 
 
 def ollama_available() -> tuple[bool, str]:
@@ -332,6 +359,32 @@ def stream_answer(req: ChatRequest) -> AsyncIterator[bytes]:
                     yield b"data: " + json.dumps({"type": "delta", "text": delta}).encode() + b"\n\n"
     except requests.RequestException as e:
         yield b"data: " + json.dumps({"type": "error", "error": str(e)}).encode() + b"\n\n"
+
+
+class TTSRequest(BaseModel):
+    text: str
+
+
+@app.post("/api/tts")
+def generate_tts(req: TTSRequest):
+    if not local_tts:
+        raise HTTPException(503, "Local TTS model not loaded.")
+    try:
+        audio = local_tts.generate(req.text)
+        # Convert float samples in [-1.0, 1.0] to 16-bit PCM values
+        int_samples = [max(-32768, min(32767, int(s * 32767))) for s in audio.samples]
+        
+        wav_io = io.BytesIO()
+        with wave.open(wav_io, 'wb') as wav_file:
+            wav_file.setnchannels(1)  # Mono
+            wav_file.setsampwidth(2)   # 16-bit
+            wav_file.setframerate(audio.sample_rate)
+            a = array.array('h', int_samples)
+            wav_file.writeframes(a.tobytes())
+            
+        return Response(content=wav_io.getvalue(), media_type="audio/wav")
+    except Exception as e:
+        raise HTTPException(500, f"TTS generation failed: {e}")
 
 
 @app.post("/api/chat")

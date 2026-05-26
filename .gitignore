@@ -36,6 +36,7 @@ screenshots/
 
 # --- Env / secrets ---
 .env
+backend/kokoro-en-v0_19/
 
 # --- Local SQLite databases ---
 backend/*.db

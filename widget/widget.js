@@ -13,6 +13,35 @@
     window.MT_CHAT_CONFIG || {}
   );
 
+  function getBackendUrl() {
+    const stored = localStorage.getItem('mt-backend-url');
+    if (stored) return stored.replace(/\/$/, '');
+    if (window.MT_BACKEND_URL) return window.MT_BACKEND_URL.replace(/\/$/, '');
+    if (window.Capacitor) {
+      return 'https://middletown-tractor-backend.onrender.com';
+    }
+    return '';
+  }
+
+  function getApiUrl() {
+    const backend = getBackendUrl();
+    if (backend) return backend + '/api/chat';
+    if (!window.Capacitor && CONFIG.apiUrl && CONFIG.apiUrl.startsWith('/')) {
+      return CONFIG.apiUrl;
+    }
+    return '';
+  }
+
+  function getTtsUrl() {
+    const backend = getBackendUrl();
+    if (backend) return backend + '/api/tts';
+    const base = CONFIG.apiUrl || '/api/chat';
+    if (!window.Capacitor && base.startsWith('/')) {
+      return base.replace(/\/chat$/, "/tts");
+    }
+    return '';
+  }
+
   /** Loaded from /api/suggestions: [{question, answer, sources, cards, images}]. */
   let cannedSuggestions = [];
   /** Remote URL -> in-app relative path (e.g. "pages/brand-john-deere.html"). */
@@ -29,14 +58,42 @@
   const launcher = el("button", { class: "mt-launcher", title: "Chat with us", "aria-label": "Open chat" }, "💬");
   const panel = el("div", { class: "mt-panel", role: "dialog", "aria-label": "Middletown Tractor chat" });
 
+  const settingsBtn = el("button", { class: "mt-settings-toggle-btn", title: "Settings", "aria-label": "Settings" }, "⚙️");
   const header = el("div", { class: "mt-header" }, [
     el("div", { class: "mt-header-text" }, [
       el("h3", {}, "Middletown Tractor"),
       el("div", { class: "mt-subtitle" }, "Ask us anything"),
     ]),
-    el("button", { class: "mt-close", title: "Close", "aria-label": "Close chat" }, "×"),
+    el("div", { class: "mt-header-actions" }, [
+      settingsBtn,
+      el("button", { class: "mt-close", title: "Close", "aria-label": "Close chat" }, "×")
+    ])
   ]);
   const messagesEl = el("div", { class: "mt-messages" });
+
+  const settingsInput = el("input", {
+    type: "url",
+    class: "mt-settings-input",
+    placeholder: "https://your-backend.onrender.com",
+    value: localStorage.getItem("mt-backend-url") || ""
+  });
+  const settingsSaveBtn = el("button", { class: "mt-settings-save-btn" }, "Save Settings");
+  const settingsCloseBtn = el("button", { class: "mt-settings-close", "aria-label": "Close Settings" }, "×");
+  
+  const settingsPanel = el("div", { class: "mt-settings-panel" }, [
+    el("div", { class: "mt-settings-header" }, [
+      el("h4", {}, "Chat Settings"),
+      settingsCloseBtn
+    ]),
+    el("div", { class: "mt-settings-body" }, [
+      el("div", { class: "mt-settings-row" }, [
+        el("label", { class: "mt-settings-label" }, "Backend API URL:"),
+        settingsInput
+      ]),
+      el("p", { class: "mt-settings-tip" }, "Provide the custom server URL hosting the open-source Ollama chatbot and Kokoro TTS model (leave blank to default to the production server)."),
+      settingsSaveBtn
+    ])
+  ]);
   const suggestionsToggle = el(
     "button",
     { class: "mt-suggestions-toggle", type: "button" },
@@ -58,8 +115,33 @@
   const sendBtn = el("button", { class: "mt-send" }, "Send");
   const inputRow = el("div", { class: "mt-input-row" }, [textarea, sendBtn]);
 
-  panel.append(header, messagesEl, suggestionsWrap, inputRow);
+  panel.append(header, messagesEl, suggestionsWrap, inputRow, settingsPanel);
   root.append(launcher, panel);
+
+  settingsBtn.addEventListener("click", () => {
+    settingsInput.value = localStorage.getItem("mt-backend-url") || "";
+    settingsPanel.classList.add("open");
+  });
+
+  settingsCloseBtn.addEventListener("click", () => {
+    settingsPanel.classList.remove("open");
+  });
+
+  settingsSaveBtn.addEventListener("click", () => {
+    const url = settingsInput.value.trim();
+    if (url) {
+      localStorage.setItem("mt-backend-url", url);
+    } else {
+      localStorage.removeItem("mt-backend-url");
+    }
+    settingsPanel.classList.remove("open");
+    
+    // Add a system notification in the message box
+    const sysMsg = appendAssistantPlaceholder();
+    setTimeout(() => {
+      renderAssistant(sysMsg, `🔧 **System**: Backend URL updated to: \`${url || 'Default Production Server'}\`.`, [], {});
+    }, 400);
+  });
 
   const COLLAPSE_KEY = "mt-chat-suggestions-collapsed";
   let suggestionsCollapsed = localStorage.getItem(COLLAPSE_KEY) === "1";
@@ -259,6 +341,11 @@
   let activeAudio = null;
 
   function stopSpeech() {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+      try {
+        window.Capacitor.Plugins.TextToSpeech.stop();
+      } catch (e) {}
+    }
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -298,46 +385,66 @@
     btn.classList.add("speaking");
     btn.textContent = "⏹️";
 
-    // Try Hugging Face most realistic serverless English TTS model first
-    try {
-      const headers = {
-        "Content-Type": "application/json"
-      };
-      if (CONFIG.hfToken) {
-        headers["Authorization"] = `Bearer ${CONFIG.hfToken}`;
-      }
-
-      const response = await fetch("https://api-inference.huggingface.co/models/facebook/mms-tts-eng", {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ inputs: cleanText })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HF Status ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      if (blob.size < 1000) {
-        throw new Error("Invalid audio payload size");
-      }
-
-      const audioUrl = URL.createObjectURL(blob);
-      const audio = new Audio(audioUrl);
-      activeAudio = audio;
-
-      audio.onended = () => {
+    // 1. Try Native Capacitor TTS first (when running inside the APK)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+      try {
+        await window.Capacitor.Plugins.TextToSpeech.speak({
+          text: cleanText,
+          lang: "en-US",
+          rate: 1.0,
+          pitch: 1.0,
+          volume: 1.0,
+          category: "ambient",
+          queueStrategy: 1
+        });
         if (activeSpeechBtn === btn) stopSpeech();
-      };
-      audio.onerror = () => {
-        fallbackToNative(cleanText, btn);
-      };
-
-      await audio.play();
-    } catch (err) {
-      console.warn("Hugging Face TTS failed, falling back to native TTS:", err);
-      fallbackToNative(cleanText, btn);
+        return;
+      } catch (err) {
+        console.warn("Native Capacitor TTS failed, trying other methods:", err);
+      }
     }
+
+    // 2. Try Local Backend Kokoro TTS (when running in local preview mode or configured in APK)
+    const localTtsUrl = getTtsUrl();
+    if (localTtsUrl) {
+      try {
+        const response = await fetch(localTtsUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text: cleanText })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Local TTS Status ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        if (blob.size < 1000) {
+          throw new Error("Invalid audio payload size");
+        }
+
+        const audioUrl = URL.createObjectURL(blob);
+        const audio = new Audio(audioUrl);
+        activeAudio = audio;
+
+        audio.onended = () => {
+          if (activeSpeechBtn === btn) stopSpeech();
+        };
+        audio.onerror = () => {
+          fallbackToNative(cleanText, btn);
+        };
+
+        await audio.play();
+        return;
+      } catch (err) {
+        console.warn("Local Backend TTS failed, falling back to browser TTS:", err);
+      }
+    }
+
+    // 3. Fallback to native browser SpeechSynthesis (Web/offline fallback)
+    fallbackToNative(cleanText, btn);
   }
 
   function fallbackToNative(cleanText, btn) {
@@ -497,7 +604,8 @@
 
     // Graceful degradation: if no backend is configured (e.g. in an offline
     // APK build), tell the user that free-form questions need a connection.
-    if (!CONFIG.apiUrl) {
+    const currentApiUrl = getApiUrl();
+    if (!currentApiUrl) {
       const msg = appendAssistantPlaceholder();
       renderAssistant(
         msg,
@@ -516,7 +624,7 @@
     let extras = {};
 
     try {
-      const res = await fetch(CONFIG.apiUrl, {
+      const res = await fetch(currentApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: history }),
