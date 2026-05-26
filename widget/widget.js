@@ -8,6 +8,7 @@
       urlMapUrl: "/assets/url_map.json",
       productsUrl: "/assets/products.json",
       greeting: "Hi! Ask me anything about Middletown Tractor — products, parts, service, financing, hours, or locations.",
+      hfToken: "",
     },
     window.MT_CHAT_CONFIG || {}
   );
@@ -252,6 +253,109 @@
   const history = [];
   let busy = false;
 
+  let activeUtterance = null;
+  let activeSpeechBtn = null;
+  let activeSpeechText = null;
+  let activeAudio = null;
+
+  function stopSpeech() {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    if (activeAudio) {
+      try {
+        activeAudio.pause();
+      } catch (e) {}
+      activeAudio = null;
+    }
+    if (activeSpeechBtn) {
+      activeSpeechBtn.classList.remove("speaking");
+      activeSpeechBtn.textContent = "🔊";
+    }
+    activeUtterance = null;
+    activeSpeechBtn = null;
+    activeSpeechText = null;
+  }
+
+  async function toggleSpeech(text, btn) {
+    if (activeSpeechBtn === btn) {
+      stopSpeech();
+      return;
+    }
+
+    stopSpeech();
+
+    // Clean text by stripping markdown formatting and emojis
+    const cleanText = text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // markdown links
+      .replace(/\*\*([^*]+)\*\*/g, "$1")       // bold
+      .replace(/\*([^*]+)\*/g, "$1")         // italics
+      .replace(/⚠️/g, "Warning:")
+      .replace(/💪|🚗|🛡️|⚡|🛋️|🎨|📦|⛰️|⚙️|🔧|🔥|🍃|🎯|🌪|🤫|📐|🌱|🔄|💵/g, "");
+
+    activeSpeechBtn = btn;
+    activeSpeechText = text;
+    btn.classList.add("speaking");
+    btn.textContent = "⏹️";
+
+    // Try Hugging Face most realistic serverless English TTS model first
+    try {
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      if (CONFIG.hfToken) {
+        headers["Authorization"] = `Bearer ${CONFIG.hfToken}`;
+      }
+
+      const response = await fetch("https://api-inference.huggingface.co/models/facebook/mms-tts-eng", {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify({ inputs: cleanText })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HF Status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      if (blob.size < 1000) {
+        throw new Error("Invalid audio payload size");
+      }
+
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      activeAudio = audio;
+
+      audio.onended = () => {
+        if (activeSpeechBtn === btn) stopSpeech();
+      };
+      audio.onerror = () => {
+        fallbackToNative(cleanText, btn);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.warn("Hugging Face TTS failed, falling back to native TTS:", err);
+      fallbackToNative(cleanText, btn);
+    }
+  }
+
+  function fallbackToNative(cleanText, btn) {
+    if (!window.speechSynthesis) {
+      stopSpeech();
+      return;
+    }
+    const u = new SpeechSynthesisUtterance(cleanText);
+    u.onend = () => {
+      if (activeSpeechBtn === btn) stopSpeech();
+    };
+    u.onerror = () => {
+      if (activeSpeechBtn === btn) stopSpeech();
+    };
+    activeUtterance = u;
+    window.speechSynthesis.speak(u);
+  }
+
   // ---------- Event wiring ----------
 
   function openPanel() {
@@ -265,6 +369,7 @@
     panel.classList.remove("open");
     launcher.classList.remove("hidden");
     document.body.style.overflow = "";
+    stopSpeech();
   }
 
   launcher.addEventListener("click", async () => {
@@ -485,9 +590,9 @@
   }
 
   function appendAssistantText(text) {
-    const m = el("div", { class: "mt-msg assistant" }, text);
+    const m = el("div", { class: "mt-msg assistant" });
     messagesEl.appendChild(m);
-    scrollDown();
+    renderAssistant(m, text, [], {});
     return m;
   }
 
@@ -559,7 +664,21 @@
 
   function renderAssistant(msgEl, text, sources, extras) {
     msgEl.textContent = ""; // clear typing dots / prior content
-    appendLinkedText(msgEl, text || "");
+
+    if (text) {
+      const ttsBtn = el("button", { class: "mt-tts-btn", type: "button", "aria-label": "Speak text", title: "Listen" }, "🔊");
+      ttsBtn.addEventListener("click", () => toggleSpeech(text, ttsBtn));
+      if (activeSpeechText === text && activeSpeechBtn) {
+        activeSpeechBtn = ttsBtn;
+        ttsBtn.classList.add("speaking");
+        ttsBtn.textContent = "⏹️";
+      }
+      msgEl.appendChild(ttsBtn);
+    }
+
+    const textSpan = el("span", { class: "mt-msg-text" });
+    appendLinkedText(textSpan, text || "");
+    msgEl.appendChild(textSpan);
 
     if (extras && Array.isArray(extras.cards) && extras.cards.length) {
       msgEl.appendChild(renderCards(extras.cards));

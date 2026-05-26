@@ -169,6 +169,8 @@
   color: var(--mt-text);
   border-bottom-left-radius: 4px;
   width: 100%;
+  position: relative;
+  padding-right: 36px;
 }
 
 .mt-msg.assistant .mt-sources {
@@ -526,4 +528,47 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "S
   gap: 8px;
   justify-content: flex-end;
   background: var(--mt-bg-alt);
+}
+
+/* ---------- Text to Speech Button ---------- */
+
+.mt-tts-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mt-text);
+  line-height: 1;
+}
+
+.mt-tts-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  background: var(--mt-surface-2);
+}
+
+.mt-tts-btn.speaking {
+  color: var(--mt-accent);
+  opacity: 1;
+  background: rgba(255, 222, 0, 0.08);
+  animation: mt-pulse 1.2s infinite ease-in-out;
+}
+
+[data-theme="light"] .mt-tts-btn.speaking {
+  background: rgba(54, 124, 43, 0.08);
+}
+
+@keyframes mt-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.1); opacity: 1; }
 }
