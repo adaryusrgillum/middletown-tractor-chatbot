@@ -257,6 +257,60 @@
     }
   });
 
+  /**
+   * Global helper used by product detail pages to open the chat with a
+   * pre-filled, sales-oriented question about a specific unit.
+   *
+   *   MTSAsk({ unit: "2024 John Deere 1025R" })
+   *   MTSAsk({ unit: "2024 John Deere 1025R", compare: true })
+   *   MTSAsk({ unit: "2024 John Deere 1025R", brand: "John Deere" })
+   *
+   * The prompt is shaped to hit the sales-tuned system prompt on the backend
+   * (see backend/server.py SYSTEM_PROMPT). The widget also dismisses the
+   * keyboard and collapses the chip strip so the answer takes the full
+   * chat height.
+   */
+  // Delegated handler for [data-mts-ask] buttons (used on product detail
+   // pages so the build script doesn't have to JS-escape unit names).
+  document.addEventListener("click", function (e) {
+    const t = e.target && e.target.closest && e.target.closest("[data-mts-ask]");
+    if (!t) return;
+    e.preventDefault();
+    window.MTSAsk({
+      unit: t.getAttribute("data-unit") || "",
+      compare: t.hasAttribute("data-compare"),
+    });
+  });
+
+  window.MTSAsk = async function MTSAsk(opts) {
+    const unit = (opts && opts.unit) ? String(opts.unit).trim() : "";
+    const compare = !!(opts && opts.compare);
+    if (!unit) return;
+
+    openPanel();
+    if (messagesEl.children.length === 0) {
+      appendAssistantText(CONFIG.greeting);
+      if (!cannedSuggestions.length) await loadSuggestions();
+      renderSuggestions();
+    }
+    // Dismiss soft keyboard + collapse chip strip - we want the answer to
+    // breathe like a sales pitch, not get scrolled under chips.
+    textarea.blur();
+    if (!suggestionsCollapsed) {
+      suggestionsCollapsed = true;
+      try { localStorage.setItem(COLLAPSE_KEY, "1"); } catch (e) {}
+      applySuggestionsCollapsed();
+    }
+
+    const text = compare
+      ? `Compare the ${unit} with other similar units you carry. Who is each one best for?`
+      : `Tell me about the ${unit}. Who is it perfect for, what makes it a great pick, and what should I know before buying?`;
+    textarea.value = text;
+    // Reuse the standard send() path so retrieval + streaming behave identically
+    // to a free-typed question.
+    send();
+  };
+
   header.querySelector(".mt-close").addEventListener("click", closePanel);
 
   // Close on hardware back / browser back when chat is open

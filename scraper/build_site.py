@@ -411,6 +411,13 @@ def render_product_page(p: dict, image_map: dict[str, str]) -> str:
     hero = images[0] if images else None
     thumbs = images[1:] if len(images) > 1 else []
 
+    # Best display name to hand the chatbot (e.g. "John Deere 1025R") - falls
+    # back gracefully when brand isn't classifiable.
+    brand_for_ai = brand_of(p) or ""
+    raw_title = (p.get("title") or "").split("|")[0].strip()
+    ai_unit = (raw_title if raw_title and len(raw_title) < 80
+               else f"{brand_for_ai} {title}".strip()) or "this unit"
+
     alt = f"{brand_of(p) or ''} {title}".strip() or "Product photo"
     hero_html = (
         f'<div class="product-hero"><img src="../{H(hero)}" alt="{H(alt)}"></div>'
@@ -446,8 +453,9 @@ def render_product_page(p: dict, image_map: dict[str, str]) -> str:
       <div class="product-brand">{H(brand_of(p) or "")}</div>
       <h1>{H(title)}</h1>
       <div class="product-cta">
-        <a class="btn btn-primary" href="#" onclick="document.querySelector('.mt-launcher')?.click();return false;">Ask about this unit</a>
-        <a class="btn btn-secondary" href="tel:3043664690">Call Fairmont</a>
+        <button class="btn btn-primary" type="button" data-mts-ask data-unit="{H(ai_unit)}">Tell me about this unit</button>
+        <button class="btn btn-secondary" type="button" data-mts-ask data-unit="{H(ai_unit)}" data-compare>Compare with others</button>
+        <a class="btn btn-ghost" href="tel:3043664690">Call Fairmont</a>
       </div>
       <div class="product-body">{body_html}</div>
       <p class="source-link"><a href="{H(p['url'])}">View on middletowntractor.com</a></p>
